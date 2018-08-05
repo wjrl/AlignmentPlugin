@@ -79,11 +79,9 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
 
   
   public NetworkAlignmentDialog(JFrame parent, NetworkAlignmentBuildData.ViewType analysisType, 
-  		                          String pluginClassName, FileLoadFlows flf) {
-    super(parent, PluginSupportFactory.getResourceManager(pluginClassName).getPluginString("networkAlignment.title"), new Dimension(700, 450), 3);
-    
-    PluginResourceManager rMan = PluginSupportFactory.getResourceManager(pluginClassName);
-     
+  		                          String pluginClassName, FileLoadFlows flf, PluginResourceManager rMan) {
+    super(parent, rMan.getPluginString("networkAlignment.title"), new Dimension(700, 450), 3);
+        
     this.parent_ = parent;
     this.analysisType_ = analysisType;
     flf_ = flf;

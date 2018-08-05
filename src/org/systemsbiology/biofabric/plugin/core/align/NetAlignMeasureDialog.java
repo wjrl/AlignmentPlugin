@@ -32,7 +32,6 @@ import javax.swing.border.EmptyBorder;
 import org.systemsbiology.biofabric.api.dialog.BTStashResultsDialog;
 import org.systemsbiology.biofabric.api.dialog.DialogSupport;
 import org.systemsbiology.biofabric.api.util.PluginResourceManager;
-import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 public class NetAlignMeasureDialog extends BTStashResultsDialog {
   
@@ -53,8 +52,8 @@ public class NetAlignMeasureDialog extends BTStashResultsDialog {
   //
   ////////////////////////////////////////////////////////////////////////////
   
-  public NetAlignMeasureDialog(JFrame parent, NetworkAlignmentPlugIn.NetAlignStats stats, String pluginClassName) {
-    super(parent, PluginSupportFactory.getResourceManager(pluginClassName).getPluginString("networkAlignment.measures"), new Dimension(700, 400), 2);
+  public NetAlignMeasureDialog(JFrame parent, NetworkAlignmentPlugIn.NetAlignStats stats, PluginResourceManager rMan) {
+    super(parent, rMan.getPluginString("networkAlignment.measures"), new Dimension(700, 400), 2);
     
     this.parent_ = parent;
     this.netAlignStats_ = stats;
@@ -62,10 +61,7 @@ public class NetAlignMeasureDialog extends BTStashResultsDialog {
     JPanel cp = (JPanel) getContentPane();
     cp.setBorder(new EmptyBorder(20, 20, 20, 20));
     cp.setLayout(new GridBagLayout());
-  
-    PluginResourceManager rMan = PluginSupportFactory.getResourceManager(pluginClassName);
-    
-    
+ 
     String msg = rMan.getPluginString("networkAlignment.measureMessage");
     addWidgetFullRow(new JLabel(msg), false);
     

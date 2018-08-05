@@ -36,7 +36,6 @@ import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
-import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 
 /****************************************************************************
@@ -78,7 +77,7 @@ public class NetworkAlignmentScorer {
   private Map<NetNode, NetNode> mapG1toG2_, perfectG1toG2_;
   
   private BTProgressMonitor monitor_;
-  private String pluginClassName_;
+  private PluginResourceManager rMan_;
   
   private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
   private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
@@ -104,8 +103,8 @@ public class NetworkAlignmentScorer {
                                 ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
                                 ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                                 Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
-                                BTProgressMonitor monitor, String pluginClassName) throws AsynchExitRequestException {
-  	pluginClassName_ = pluginClassName;
+                                BTProgressMonitor monitor, PluginResourceManager rMan) throws AsynchExitRequestException {
+  	rMan_ = rMan;
     this.linksMain_ = new HashSet<NetLink>(reducedLinks);
     this.loneNodeIDsMain_ = new HashSet<NetNode>(loneNodeIDs);
     this.mergedToCorrectNC_ = mergedToCorrectNC;
@@ -245,15 +244,15 @@ public class NetworkAlignmentScorer {
    */
   
   private void finalizeMeasures() {
-    PluginResourceManager rMan = PluginSupportFactory.getResourceManager(pluginClassName_);
+
     String
-            ECn = rMan.getPluginString("networkAlignment.edgeCoverage"),
-            S3n = rMan.getPluginString("networkAlignment.symmetricSubstructureScore"),
-            ICSn = rMan.getPluginString("networkAlignment.inducedConservedStructure"),
-            NCn = rMan.getPluginString("networkAlignment.nodeCorrectness"),
-            NGSn = rMan.getPluginString("networkAlignment.nodeGroupSimilarity"),
-            LGSn = rMan.getPluginString("networkAlignment.linkGroupSimilarity"),
-            JSn = rMan.getPluginString("networkAlignment.jaccardSimilarity");
+            ECn = rMan_.getPluginString("networkAlignment.edgeCoverage"),
+            S3n = rMan_.getPluginString("networkAlignment.symmetricSubstructureScore"),
+            ICSn = rMan_.getPluginString("networkAlignment.inducedConservedStructure"),
+            NCn = rMan_.getPluginString("networkAlignment.nodeCorrectness"),
+            NGSn = rMan_.getPluginString("networkAlignment.nodeGroupSimilarity"),
+            LGSn = rMan_.getPluginString("networkAlignment.linkGroupSimilarity"),
+            JSn = rMan_.getPluginString("networkAlignment.jaccardSimilarity");
     
     NetworkAlignmentPlugIn.NetAlignMeasure[] possibleMeasures = {
             new NetworkAlignmentPlugIn.NetAlignMeasure(ECn, EC),
