@@ -55,7 +55,7 @@ public class AlignmentLoader {
   //
   ////////////////////////////////////////////////////////////////////////////
   
-	private String pluginClassName_;
+	private PluginResourceManager rMan_;
 	
   ////////////////////////////////////////////////////////////////////////////
   //
@@ -68,8 +68,8 @@ public class AlignmentLoader {
    ** Constructor
    */
   
-  public AlignmentLoader(String pluginClassName) {
-  	pluginClassName_ = pluginClassName;
+  public AlignmentLoader(String pluginClassName, PluginResourceManager rMan) {
+  	rMan_ = rMan;
   }
   
   ////////////////////////////////////////////////////////////////////////////
@@ -87,9 +87,7 @@ public class AlignmentLoader {
                               ArrayList<NetLink> linksGraph1, HashSet<NetNode> loneNodesGraph1,
                               ArrayList<NetLink> linksGraph2, HashSet<NetNode> loneNodesGraph2)
           throws IOException {
-  
-    PluginResourceManager rMan = PluginSupportFactory.getResourceManager(pluginClassName_);
-    
+      
     Map<String, NetNode> G1nameToNID, G2nameToNID;
     try {
     	BuildExtractor bex = PluginSupportFactory.getBuildExtractor();
@@ -122,11 +120,11 @@ public class AlignmentLoader {
 	              existsInG2 = G2nameToNID.containsKey(strNameG2);
 	  
 	      if (!existsInG1) {
-	        String msg = MessageFormat.format(rMan.getPluginString("networkAlignment.nodeNotFoundG1"), strNameG1);
+	        String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.nodeNotFoundG1"), strNameG1);
 	        throw (new IOException(msg));
 	      }
 	      if (!existsInG2) {
-	        String msg = MessageFormat.format(rMan.getPluginString("networkAlignment.nodeNotFoundG2"), strNameG2);
+	        String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.nodeNotFoundG2"), strNameG2);
 	        throw (new IOException(msg));
 	      }
 	      
@@ -135,7 +133,7 @@ public class AlignmentLoader {
 	      if (mapG1ToG2.containsKey(nodeG1)) {
 	        
 	        if (! mapG1ToG2.get(nodeG1).equals(nodeG2)) {
-	          String msg = MessageFormat.format(rMan.getPluginString("networkAlignment.mapError"), strNameG1);
+	          String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.mapError"), strNameG1);
 	          throw (new IOException(msg));
 	        } else {
 	          stats.dupLines.add(line);
@@ -146,7 +144,7 @@ public class AlignmentLoader {
 	    }
 	  
 	    if (mapG1ToG2.size() != G1nameToNID.size()) {
-	      String msg = MessageFormat.format(rMan.getPluginString("networkAlignment.mapSizeError"), mapG1ToG2.size(), G1nameToNID.size());
+	      String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.mapSizeError"), mapG1ToG2.size(), G1nameToNID.size());
 	      throw (new IOException(msg));
 	    }
     } finally {
@@ -163,7 +161,6 @@ public class AlignmentLoader {
   
   public Map<String, String> readAlignment(File infile, NetAlignFileStats stats) throws IOException {
   	
-  	PluginResourceManager rMan = PluginSupportFactory.getResourceManager(pluginClassName_);
     Map<String, String> mapG1ToG2Str = new HashMap<String, String>();
     BufferedReader in = null;
     
@@ -184,7 +181,7 @@ public class AlignmentLoader {
 	      
 	      if (mapG1ToG2Str.containsKey(strNameG1)) {
 	        if (! mapG1ToG2Str.get(strNameG1).equals(strNameG2)) {
-	          String msg = MessageFormat.format(rMan.getPluginString("networkAlignment.mapError"), strNameG1);
+	          String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.mapError"), strNameG1);
 	          throw (new IOException(msg));
 	        } else {
 	          stats.dupLines.add(line);
