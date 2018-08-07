@@ -428,11 +428,11 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     switch (mode) {
       case GRAPH_ONE_FILE:
       case GRAPH_TWO_FILE:
-        file = flf_.getTheFile(".gw", ".sif", "LoadDirectory", "filterName.graph");
+        file = flf_.getTheFile(".gw", ".sif", "LoadDirectory", "filterName.graph", this);
         break;
       case ALIGNMENT_FILE:
       case PERFECT_FILE:
-        file = flf_.getTheFile(".align", null, "LoadDirectory", "filterName.align");
+        file = flf_.getTheFile(".align", null, "LoadDirectory", "filterName.align", this);
         break;
       default:
         throw new IllegalArgumentException();
