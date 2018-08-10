@@ -101,7 +101,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     myCmds_.add(new LoadNetAlignGroupsCmd());
     myCmds_.add(new LoadNetAlignOrphanCmd());
     myCmds_.add(new LoadNetAlignCaseIICmd());
-    myCmds_.add(new NetAlignScoresCmd()); 
+    myCmds_.add(new NetAlignMeasuresCmd());
     publishedNetAlignStats_ = new NetAlignStats();
     pendingNetAlignStats_ = new NetAlignStats();
     
@@ -141,11 +141,9 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   
   public void newNetworkInstalled(Network bfn) {
     // If we are working on an alignment, we will retain the pending stats we are generating. Else, they get dropped.
-  	if (pendingNetAlignStats_.hasStats()) {
+    if (pendingNetAlignStats_.hasStats()) {
   		publishedNetAlignStats_ = pendingNetAlignStats_;
   		pendingNetAlignStats_ = new NetAlignStats();
-  	} else {
-  		publishedNetAlignStats_ = new NetAlignStats();
   	}
     for (BioFabricToolPlugInCmd cmd : myCmds_) {
       ((Enabler)cmd).setEnabled(true);
@@ -682,7 +680,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
    ** Check if G1's nodes are subset of G2's
    */
   
-  private Boolean isG1subsetG2(ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
+  private boolean isG1subsetG2(ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
                                ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge) {
   
     Set<NetNode> nodesG1 = null, nodesG2 = null;
@@ -725,7 +723,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   ** Command
   */
   
-  private class NetAlignScoresCmd implements BioFabricToolPlugInCmd, Enabler {
+  private class NetAlignMeasuresCmd implements BioFabricToolPlugInCmd, Enabler {
    
   	private boolean enabled_;
   	
@@ -749,7 +747,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     }
   
     public boolean isEnabled() {
-      return (enabled_ && publishedNetAlignStats_.hasStats());    
+      return (enabled_ && publishedNetAlignStats_.hasStats());
     } 
   }
  
