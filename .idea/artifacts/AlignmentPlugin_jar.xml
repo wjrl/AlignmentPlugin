@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AlignmentPlugin:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/AlignmentPlugin_jar</output-path>
+    <root id="archive" name="AlignmentPlugin.jar">
+      <element id="module-output" name="BioFabric" />
+      <element id="module-output" name="AlignmentPlugin" />
+    </root>
+  </artifact>
+</component>

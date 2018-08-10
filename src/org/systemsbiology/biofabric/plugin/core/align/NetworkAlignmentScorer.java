@@ -571,67 +571,15 @@ public class NetworkAlignmentScorer {
   
       NodeGroupMap.JaccardSimilarityFunc funcJS =
               new NodeGroupMap.JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, monitor);
+
       Map<NetNode, NetNode> entrezAlign = funcJS.entrezAlign;
-      Map<NetNode, Set<NetNode>> nodeToNeigh = funcJS.nodeToNeighL;
   
-      HashSet<NetNode> union = new HashSet<NetNode>();
-      HashSet<NetNode> intersect = new HashSet<NetNode>();
-      HashSet<NetNode> scratchNode = new HashSet<NetNode>();
-      HashSet<NetNode> scratchMatch = new HashSet<NetNode>();
       double totJ = 0.0;
-      int numEnt = 0;
-    
       for (NetNode node : entrezAlign.keySet()) {
-        int lenAdjust = 0;
-        NetNode match = entrezAlign.get(node);
-        Set<NetNode> neighOfNode = nodeToNeigh.get(node);
-        Set<NetNode> neighOfMatch = nodeToNeigh.get(match);
-        scratchNode.clear();
-        scratchNode.addAll(neighOfNode);
-        scratchMatch.clear();
-        scratchMatch.addAll(neighOfMatch);
-        if (scratchNode.contains(match)) {
-          scratchNode.remove(match);
-          scratchMatch.remove(node);
-          lenAdjust = 1;
-        }
-        union.clear();
-        union(scratchNode, scratchMatch, union);
-        intersect.clear();
-        intersection(scratchNode, scratchMatch, intersect);
-        int uSize = union.size() + lenAdjust;
-        int iSize = intersect.size() + lenAdjust;
-        double jaccard = (double)(iSize) / (double)uSize;
-        totJ += jaccard;
-        numEnt++;
+        totJ += funcJS.jaccSimValue(node, entrezAlign.get(node));
       }
-      double score = totJ / numEnt;
-    
-      return (score);
-    }
-  
-    /***************************************************************************
-     **
-     ** Set intersection helper
-     */
-  
-    private  <T> Set<T> intersection(Set<T> one, Set<T> two, Set<T> result) {
-      result.clear();
-      result.addAll(one);
-      result.retainAll(two);
-      return (result);
-    }
-  
-    /***************************************************************************
-     **
-     ** Set union helper
-     */
-  
-    private  <T> Set<T> union(Set<T> one, Set<T> two, Set<T> result) {
-      result.clear();
-      result.addAll(one);
-      result.addAll(two);
-      return (result);
+      double measure = totJ / entrezAlign.keySet().size();
+      return (measure);
     }
     
   }
