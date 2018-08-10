@@ -80,7 +80,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
   private PluginResourceManager rMan_;
   
   private final int NO_PERFECT_IDX = 0, WITH_PERFECT_IDX = 1, NC_IDX = 2, JS_IDX = 3; // indices on combo box
-  private final double JACCARD_SIMILARITY_DEFAULT = .50;
+  private final double JACCARD_SIMILARITY_DEFAULT = .10;
   
   public NetworkAlignmentDialog(JFrame parent, NetworkAlignmentBuildData.ViewType analysisType, 
   		                          String pluginClassName, FileLoadFlows flf, PluginResourceManager rMan) {
@@ -214,6 +214,9 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     if (analysisType_ != NetworkAlignmentBuildData.ViewType.ORPHAN) { // add perfect alignment button
       addLabeledWidget(perfectNGLabel, perfectNGsCombo_, true, true);
       addLabeledFileBrowse(perfectFileMatch_, perfectField_, perfectBrowse);
+    }
+    
+    if (analysisType_ == NetworkAlignmentBuildData.ViewType.GROUP) {
       addLabeledWidget(jaccSimLabel_, jaccSimField_, true, true);
     }
     

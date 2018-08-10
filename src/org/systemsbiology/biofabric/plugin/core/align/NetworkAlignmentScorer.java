@@ -43,8 +43,8 @@ import org.systemsbiology.biofabric.api.worker.LoopReporter;
  ** Calculates topological scores of network alignments: Edge Coverage (EC),
  ** Symmetric Substructure score (S3), Induced Conserved Substructure (ICS);
  **
- ** Node Correctness (NC) and Jaccard Similarity (JS) are calculatable
- ** only if we know the perfect alignment.
+ ** Node Correctness (NC) and Jaccard Similarity (JS) are calculable
+ ** only if we have the perfect alignment.
  **
  ** NGS and LGS are the angular similarity between the normalized ratio vectors
  ** of the respective node groups and link groups of the main
@@ -124,11 +124,11 @@ public class NetworkAlignmentScorer {
     this.mapG1toG2_ = mapG1toG2;
     this.perfectG1toG2_ = perfectG1toG2;
     this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
-            mergedToCorrectNC, isAlignedNode, NodeGroupMap.PerfectNGMode.NONE,
+            mergedToCorrectNC, isAlignedNode, NodeGroupMap.PerfectNGMode.NONE, null,
             NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
     if (mergedToCorrectNC != null) {
       this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,
-              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, NodeGroupMap.PerfectNGMode.NONE,
+              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, NodeGroupMap.PerfectNGMode.NONE, null,
               NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
     }
     removeDuplicateAndShadow();
@@ -229,7 +229,7 @@ public class NetworkAlignmentScorer {
    */
   
   private void calcScores() throws AsynchExitRequestException {
-    calcTopologicalScores();
+    calcTopologicalMeasures();
   
     if (mergedToCorrectNC_ != null) { // must have perfect alignment for these measures
       calcNodeCorrectness();
@@ -274,7 +274,7 @@ public class NetworkAlignmentScorer {
     return;
   }
   
-  private void calcTopologicalScores() throws AsynchExitRequestException{
+  private void calcTopologicalMeasures() throws AsynchExitRequestException{
     LoopReporter lr = new LoopReporter(linksMain_.size(), 20, monitor_, 0.0, 1.0, "progress.topologicalMeasures");
     int numCoveredEdge = 0, numGraph1 = 0, numInducedGraph2 = 0;
     
@@ -318,14 +318,14 @@ public class NetworkAlignmentScorer {
   }
   
   private void calcGroupSimilarity() {
-    GroupSimilarity gd = new GroupSimilarity();
+    GroupSimilarityMeasure gd = new GroupSimilarityMeasure();
     NGS = gd.calcNGS(groupMapMain_, groupMapPerfect_);
     LGS = gd.calcLGS(groupMapMain_, groupMapPerfect_);
     return;
   }
   
   private void calcJaccardSimilarity() throws AsynchExitRequestException {
-    this.JaccSim = new JaccardSimilarityScore().calcScore(mapG1toG2_, perfectG1toG2_, linksLarge_, lonersLarge_, monitor_);
+    this.JaccSim = new JaccardSimilarityMeasure().calcScore(mapG1toG2_, perfectG1toG2_, linksLarge_, lonersLarge_, monitor_);
     return;
   }
   
@@ -485,7 +485,7 @@ public class NetworkAlignmentScorer {
    ** NGS and LGS - with Angular similarity
    */
   
-  private static class GroupSimilarity {
+  private static class GroupSimilarityMeasure {
   
     /***************************************************************************
      **
@@ -558,7 +558,7 @@ public class NetworkAlignmentScorer {
    ** Jaccard Similarity Measure - Adapted from NodeEQC.java
    */
   
-  private static class JaccardSimilarityScore {
+  private static class JaccardSimilarityMeasure {
   
     /***************************************************************************
      **
@@ -570,7 +570,7 @@ public class NetworkAlignmentScorer {
                      BTProgressMonitor monitor) throws AsynchExitRequestException {
   
       NodeGroupMap.JaccardSimilarityFunc funcJS =
-              new NodeGroupMap.JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, monitor);
+              new NodeGroupMap.JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, null, monitor);
 
       Map<NetNode, NetNode> entrezAlign = funcJS.entrezAlign;
   

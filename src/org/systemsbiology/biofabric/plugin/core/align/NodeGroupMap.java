@@ -112,9 +112,10 @@ public class NodeGroupMap {
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).perfectG1toG2, 
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksLarge, 
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
-         ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC, 
-         ((NetworkAlignmentBuildData)bd.getPluginBuildData()).isAlignedNode, 
-         ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode, 
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).isAlignedNode,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
          nodeGroupOrder, 
          colorMap, 
          monitor);
@@ -124,7 +125,8 @@ public class NodeGroupMap {
                       Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
                       ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                       Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
-                      PerfectNGMode mode, String[] nodeGroupOrder, String[][] colorMap,
+                      PerfectNGMode mode, final Double jaccSimThreshold,
+                      String[] nodeGroupOrder, String[][] colorMap,
                       BTProgressMonitor monitor) throws AsynchExitRequestException {
     this.links_ = allLinks;
     this.loners_ = loneNodeIDs;
@@ -133,7 +135,7 @@ public class NodeGroupMap {
     this.numGroups_ = nodeGroupOrder.length;
     this.mode_ = mode;
     if (mode == PerfectNGMode.JACCARD_SIMILARITY) {
-      this.funcJS_ = new JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, monitor);
+      this.funcJS_ = new JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, jaccSimThreshold, monitor);
     }
     this.monitor_ = monitor;
     generateStructs(allLinks, loneNodeIDs);
@@ -269,10 +271,8 @@ public class NodeGroupMap {
         boolean isCorrect;
         if (mode_ == PerfectNGMode.NODE_CORRECTNESS) {
           isCorrect = mergedToCorrectNC_.get(node);
-//          sb.append((isCorrect) ? 1 : 0);
         } else if (mode_ == PerfectNGMode.JACCARD_SIMILARITY) {
           isCorrect = funcJS_.isCorrectJS(node);
-//          sb.append((isCorrect) ? 1 : 0);
         } else {
           throw new IllegalStateException("Incorrect mode for Perfect NGs Group Map");
         }
@@ -486,15 +486,15 @@ public class NodeGroupMap {
     private Map<String, NetNode> nameToLarge_;
     private Map<NetNode, Set<NetNode>> nodeToNeighL;
     private BTProgressMonitor monitor_;
+    private final Double jaccSimThreshold_;
     
     final Map<NetNode, NetNode> entrezAlign;
   
-    final double THRESHOLD_TEST = .25; // TEMPORARY until user input added
-    
     JaccardSimilarityFunc(Map<NetNode, NetNode> mapG1toG2,
                           Map<NetNode, NetNode> perfectG1toG2,
                           ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                          BTProgressMonitor monitor) throws AsynchExitRequestException {
+                          final Double jaccSimThreshold, BTProgressMonitor monitor)
+            throws AsynchExitRequestException {
       this.mapG1toG2_ = mapG1toG2;
       this.perfectG1toG2_ = perfectG1toG2;
       this.entrezAlign = new HashMap<NetNode, NetNode>();
@@ -502,6 +502,7 @@ public class NodeGroupMap {
       this.linksLarge_ = linksLarge;
       this.lonersLarge_ = lonersLarge;
       this.nameToLarge_ = new HashMap<String, NetNode>();
+      this.jaccSimThreshold_ = jaccSimThreshold;
       this.monitor_ = monitor;
       makeNodeToNeighL();
       constructEntrezAlign();
@@ -525,7 +526,10 @@ public class NodeGroupMap {
       NetNode match = entrezAlign.get(largeNode);
       
       double jsVal = jaccSimValue(largeNode, match);
-      boolean isCorrect = Double.compare(jsVal, THRESHOLD_TEST) >= 0;
+      if (jaccSimThreshold_ == null) {
+        throw new IllegalStateException("JS Threshold is null"); // should never happen
+      }
+      boolean isCorrect = Double.compare(jsVal, jaccSimThreshold_) >= 0;
       return (isCorrect);
     }
   
