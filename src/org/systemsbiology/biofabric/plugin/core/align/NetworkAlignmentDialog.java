@@ -31,6 +31,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -63,20 +64,23 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     GRAPH_ONE_FILE, GRAPH_TWO_FILE, ALIGNMENT_FILE, PERFECT_FILE
   }
   
+  private static final long serialVersionUID = 1L;
+  private final JFrame parent_;
   private final NetworkAlignmentBuildData.ViewType analysisType_;
-  private JFrame parent_;
   private JButton perfectBrowse;
   private MatchingJLabel perfectFileMatch_;
   private JTextField graph1Field_, graph2Field_, alignField_, perfectField_;
   private File graph1File_, graph2File_, alignmentFile_, perfectAlignFile_; // perfect Alignment is optional
   private FixedJButton buttonOK_;
   private JCheckBox undirectedConfirm_;
-  private static final long serialVersionUID = 1L;
   private JComboBox perfectNGsCombo_;
+  private JLabel jaccSimLabel_;
+  private JTextField jaccSimField_;
   private FileLoadFlows flf_;
+  private PluginResourceManager rMan_;
   
   private final int NO_PERFECT_IDX = 0, WITH_PERFECT_IDX = 1, NC_IDX = 2, JS_IDX = 3; // indices on combo box
-
+  private final double JACCARD_SIMILARITY_DEFAULT = .50;
   
   public NetworkAlignmentDialog(JFrame parent, NetworkAlignmentBuildData.ViewType analysisType, 
   		                          String pluginClassName, FileLoadFlows flf, PluginResourceManager rMan) {
@@ -84,7 +88,8 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
         
     this.parent_ = parent;
     this.analysisType_ = analysisType;
-    flf_ = flf;
+    this.flf_ = flf;
+    this.rMan_ = rMan;
     
     JPanel cp = (JPanel) getContentPane();
     cp.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -94,10 +99,10 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     // File Buttons and File Labels
     //
     
-    JButton graph1Browse = new JButton(rMan.getPluginString("networkAlignment.browse"));
-    JButton graph2Browse = new JButton(rMan.getPluginString("networkAlignment.browse"));
-    JButton alignmentBrowse = new JButton(rMan.getPluginString("networkAlignment.browse"));
-    perfectBrowse = new JButton(rMan.getPluginString("networkAlignment.browse"));
+    JButton graph1Browse = new JButton(rMan_.getPluginString("networkAlignment.browse"));
+    JButton graph2Browse = new JButton(rMan_.getPluginString("networkAlignment.browse"));
+    JButton alignmentBrowse = new JButton(rMan_.getPluginString("networkAlignment.browse"));
+    perfectBrowse = new JButton(rMan_.getPluginString("networkAlignment.browse"));
     
     initBrowseButtons(graph1Browse, graph2Browse, alignmentBrowse, perfectBrowse);
   
@@ -105,16 +110,16 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     graph2Field_= new JTextField(30);
     alignField_ = new JTextField(30);
     perfectField_ = new JTextField(30);
-    undirectedConfirm_ = new JCheckBox(rMan.getPluginString("networkAlignment.confirmUndirected"));
+    undirectedConfirm_ = new JCheckBox(rMan_.getPluginString("networkAlignment.confirmUndirected"));
     
     initTextFields();
 
     MatchingJLabel graph1FileMatch, graph2FileMatch, alignFileMatch;
-    JLabel perfectFileName = new JLabel(rMan.getPluginString("networkAlignment.perfect")); // only to use as a reference, not in dialog
-    perfectFileMatch_ = new MatchingJLabel(rMan.getPluginString("networkAlignment.perfect"), perfectFileName);
-    graph1FileMatch = new MatchingJLabel(rMan.getPluginString("networkAlignment.graph1"), perfectFileName);
-    graph2FileMatch = new MatchingJLabel(rMan.getPluginString("networkAlignment.graph2"), perfectFileName);
-    alignFileMatch = new MatchingJLabel(rMan.getPluginString("networkAlignment.alignment"), perfectFileName);
+    JLabel jaccSimLabelMatch = new JLabel(rMan_.getPluginString("networkAlignment.jaccardSimilarityLabel")); // only to use as a reference, not in dialog
+    perfectFileMatch_ = new MatchingJLabel(rMan_.getPluginString("networkAlignment.perfect"), jaccSimLabelMatch);
+    graph1FileMatch = new MatchingJLabel(rMan_.getPluginString("networkAlignment.graph1"), jaccSimLabelMatch);
+    graph2FileMatch = new MatchingJLabel(rMan_.getPluginString("networkAlignment.graph2"), jaccSimLabelMatch);
+    alignFileMatch = new MatchingJLabel(rMan_.getPluginString("networkAlignment.alignment"), jaccSimLabelMatch);
     
     graph1FileMatch.setHorizontalAlignment(SwingConstants.CENTER);
     graph2FileMatch.setHorizontalAlignment(SwingConstants.CENTER);
@@ -135,15 +140,15 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     JPanel panGraphInfoTwo = null;
     switch (analysisType_) {
       case ORPHAN:
-        panGraphInfo.add(new JLabel(rMan.getPluginString("networkAlignment.messageNonGroup")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageNonGroup")));
         break;
       case CYCLE:
-        panGraphInfo.add(new JLabel(rMan.getPluginString("networkAlignment.messageNonGroup")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageNonGroup")));
         panGraphInfoTwo = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panGraphInfoTwo.add(new JLabel(rMan.getPluginString("networkAlignment.messageCycleTwo")));
+        panGraphInfoTwo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageCycleTwo")));
         break;
       case GROUP:
-        panGraphInfo.add(new JLabel(rMan.getPluginString("networkAlignment.message")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.message")));
         break;
       default:
         throw new IllegalStateException();
@@ -161,16 +166,17 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     addLabeledFileBrowse(graph2FileMatch, graph2Field_, graph2Browse);
     addLabeledFileBrowse(alignFileMatch, alignField_, alignmentBrowse);
   
-    JLabel perfectNGLabel = new JLabel(rMan.getPluginString("networkAlignment.perfectNodeGroups"));
+    JLabel perfectNGLabel = new MatchingJLabel(rMan_.getPluginString("networkAlignment.perfectNodeGroups"), jaccSimLabelMatch);
+    perfectNGLabel.setHorizontalAlignment(SwingConstants.CENTER);
     
     int numChoices = (analysisType_ == NetworkAlignmentBuildData.ViewType.CYCLE) ? 2 : 4;
    
     String[] choices = new String[numChoices];
-    choices[NO_PERFECT_IDX] = rMan.getPluginString("networkAlignment.nonePerfect");
-    choices[WITH_PERFECT_IDX] = rMan.getPluginString("networkAlignment.noneWithPerfect");
+    choices[NO_PERFECT_IDX] = rMan_.getPluginString("networkAlignment.nonePerfect");
+    choices[WITH_PERFECT_IDX] = rMan_.getPluginString("networkAlignment.noneWithPerfect");
     if (analysisType_ != NetworkAlignmentBuildData.ViewType.CYCLE) {
-    	choices[NC_IDX] = rMan.getPluginString("networkAlignment.nodeCorrectnessGroupOption");
-    	choices[JS_IDX] = rMan.getPluginString("networkAlignment.jaccardSimilarityGroupOption");
+    	choices[NC_IDX] = rMan_.getPluginString("networkAlignment.nodeCorrectnessGroupOption");
+    	choices[JS_IDX] = rMan_.getPluginString("networkAlignment.jaccardSimilarityGroupOption");
     }
     
     perfectNGsCombo_ = new JComboBox(choices); // have to use unchecked for v1.6
@@ -191,19 +197,28 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
         }
       }
     });
-    managePerfectButtons();
+  
+    //
+    // Jaccard Similarity Label and Field
+    //
+  
+    jaccSimLabel_ = new MatchingJLabel(rMan_.getPluginString("networkAlignment.jaccardSimilarityLabel"), jaccSimLabelMatch);
+    jaccSimLabel_.setHorizontalAlignment(SwingConstants.CENTER);
+    jaccSimField_ = new JTextField(Double.toString(JACCARD_SIMILARITY_DEFAULT));
     
     //
     // No Perfect Alignment for Orphan Layout
-    //
     // 'Correct' node groups enabling
     //
     
     if (analysisType_ != NetworkAlignmentBuildData.ViewType.ORPHAN) { // add perfect alignment button
       addLabeledWidget(perfectNGLabel, perfectNGsCombo_, true, true);
       addLabeledFileBrowse(perfectFileMatch_, perfectField_, perfectBrowse);
+      addLabeledWidget(jaccSimLabel_, jaccSimField_, true, true);
     }
     
+    managePerfectButtons();
+  
     //
     // OK button
     //
@@ -371,6 +386,13 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
       perfectBrowse.setEnabled(true);
       perfectFileMatch_.setEnabled(true);
     }
+    if (perfectNGsCombo_.getSelectedIndex() == JS_IDX) {
+      jaccSimLabel_.setEnabled(true);
+      jaccSimField_.setEnabled(true);
+    } else {
+      jaccSimLabel_.setEnabled(false);
+      jaccSimField_.setEnabled(false);
+    }
     return;
   }
   
@@ -468,6 +490,29 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     return;
   }
   
+  /**
+   ** Checks value in JS text-field
+   */
+  
+  private boolean jaccSimThresholdOK() {
+    try {
+      String text = jaccSimField_.getText();
+      double val = Double.parseDouble(text);
+      boolean ok = Double.compare(val, 1.0) <= 0 && Double.compare(val, 0.0) >= 0; // must be in [0,1]
+      return (ok);
+    } catch (NumberFormatException nfe) {
+      return (false);
+    }
+  }
+  
+  /**
+   ** Returns value in JS text-field after check
+   */
+  
+  private Double getJaccSimThreshold() {
+    return (jaccSimThresholdOK()) ? (Double.parseDouble(jaccSimField_.getText())) : null;
+  }
+  
   ////////////////////////////////////////////////////////////////////////////
   //
   // PUBLIC METHODS AND CLASSES
@@ -476,6 +521,14 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
   
   @Override
   public void okAction() {
+    if (perfectNGsCombo_.getSelectedIndex() == JS_IDX) {
+      if (! jaccSimThresholdOK()) {
+        JOptionPane.showMessageDialog(parent_, rMan_.getPluginString("networkAlignment.jaccardSimilarityMsg"),
+                rMan_.getPluginString("networkAlignment.jaccardSimilarityMsgTitle"),
+                JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+    }
     try {
       manageFieldToFile();
       super.okAction();
@@ -506,11 +559,12 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
       throw new IllegalStateException("Graph file(s) or alignment file missing.");
     }
     
+    Double jaccSimThreshold = null;
     NodeGroupMap.PerfectNGMode mode;
     switch (perfectNGsCombo_.getSelectedIndex()) {
       case NO_PERFECT_IDX:
-        perfectAlignFile_ = null; // RishiDesai issue #36 fix; user adds perfect file but changes combo box to no file
         mode = NodeGroupMap.PerfectNGMode.NONE;
+        perfectAlignFile_ = null; // RishiDesai issue #36 fix; user adds perfect file but changes combo box to no file
         break;
       case WITH_PERFECT_IDX:
         mode = NodeGroupMap.PerfectNGMode.NONE;
@@ -520,12 +574,13 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
         break;
       case JS_IDX:
         mode = NodeGroupMap.PerfectNGMode.JACCARD_SIMILARITY;
+        jaccSimThreshold = getJaccSimThreshold();
         break;
       default:
         // should never happen
         throw (new IllegalStateException("Illegal perfect NG mode"));
     }
-    return (new NetworkAlignmentDialogInfo(graph1File_, graph2File_, alignmentFile_, perfectAlignFile_, analysisType_, mode));
+    return (new NetworkAlignmentDialogInfo(graph1File_, graph2File_, alignmentFile_, perfectAlignFile_, analysisType_, mode, jaccSimThreshold));
   }
   
   /**
@@ -538,15 +593,18 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
 
     public final NetworkAlignmentBuildData.ViewType analysisType;
     public final NodeGroupMap.PerfectNGMode mode;
+    public final Double jaccSimThreshold;
     
     public NetworkAlignmentDialogInfo(File graph1, File graph2, File align, File perfect,
-                                      NetworkAlignmentBuildData.ViewType analysisType, NodeGroupMap.PerfectNGMode mode) {
+                                      NetworkAlignmentBuildData.ViewType analysisType, NodeGroupMap.PerfectNGMode mode,
+                                      Double jaccSimThreshold) {
       this.graphA = graph1;
       this.graphB = graph2;
       this.align = align;
       this.perfect = perfect;
       this.analysisType = analysisType;
       this.mode = mode;
+      this.jaccSimThreshold = jaccSimThreshold;
     }
     
   }
