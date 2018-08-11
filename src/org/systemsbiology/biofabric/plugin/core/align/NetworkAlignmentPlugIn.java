@@ -142,9 +142,11 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   public void newNetworkInstalled(Network bfn) {
     // If we are working on an alignment, we will retain the pending stats we are generating. Else, they get dropped.
     if (pendingNetAlignStats_.hasStats()) {
-  		publishedNetAlignStats_ = pendingNetAlignStats_;
-  		pendingNetAlignStats_ = new NetAlignStats();
-  	}
+      publishedNetAlignStats_ = pendingNetAlignStats_;
+      pendingNetAlignStats_ = new NetAlignStats();
+  	} else {
+      publishedNetAlignStats_ = new NetAlignStats();
+    }
     for (BioFabricToolPlugInCmd cmd : myCmds_) {
       ((Enabler)cmd).setEnabled(true);
     }
@@ -247,7 +249,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   */
  
   public void attachXMLData(BioFabricToolPlugInData data) {
-    publishedNetAlignStats_ = (NetAlignStats)data;
+    pendingNetAlignStats_ = (NetAlignStats)data;
     return;   
   }
  
