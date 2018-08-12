@@ -112,9 +112,10 @@ public class NodeGroupMap {
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).perfectG1toG2, 
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksLarge, 
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
-         ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC, 
-         ((NetworkAlignmentBuildData)bd.getPluginBuildData()).isAlignedNode, 
-         ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode, 
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).isAlignedNode,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
          nodeGroupOrder, 
          colorMap, 
          monitor);
@@ -124,7 +125,8 @@ public class NodeGroupMap {
                       Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
                       ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                       Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
-                      PerfectNGMode mode, String[] nodeGroupOrder, String[][] colorMap,
+                      PerfectNGMode mode, final Double jaccSimThreshold,
+                      String[] nodeGroupOrder, String[][] colorMap,
                       BTProgressMonitor monitor) throws AsynchExitRequestException {
     this.links_ = allLinks;
     this.loners_ = loneNodeIDs;
@@ -133,7 +135,7 @@ public class NodeGroupMap {
     this.numGroups_ = nodeGroupOrder.length;
     this.mode_ = mode;
     if (mode == PerfectNGMode.JACCARD_SIMILARITY) {
-      this.funcJS_ = new JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, monitor);
+      this.funcJS_ = new JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, jaccSimThreshold, monitor);
     }
     this.monitor_ = monitor;
     generateStructs(allLinks, loneNodeIDs);
@@ -266,13 +268,15 @@ public class NodeGroupMap {
       if (mergedToCorrectNC_.get(node) == null) {   // red node
         sb.append(0);
       } else {
+        boolean isCorrect;
         if (mode_ == PerfectNGMode.NODE_CORRECTNESS) {
-          boolean isCorrect = mergedToCorrectNC_.get(node);
-          sb.append((isCorrect) ? 1 : 0);
+          isCorrect = mergedToCorrectNC_.get(node);
         } else if (mode_ == PerfectNGMode.JACCARD_SIMILARITY) {
-          boolean isCorrect = funcJS_.isCorrectJS(node);
-          sb.append((isCorrect) ? 1 : 0);
+          isCorrect = funcJS_.isCorrectJS(node);
+        } else {
+          throw new IllegalStateException("Incorrect mode for Perfect NGs Group Map");
         }
+        sb.append((isCorrect) ? 1 : 0);
       }
     }
     sb.append(")");
@@ -480,15 +484,17 @@ public class NodeGroupMap {
     private ArrayList<NetLink> linksLarge_;
     private HashSet<NetNode> lonersLarge_;
     private Map<String, NetNode> nameToLarge_;
+    private Map<NetNode, Set<NetNode>> nodeToNeighL;
     private BTProgressMonitor monitor_;
+    private final Double jaccSimThreshold_;
     
-    Map<NetNode, NetNode> entrezAlign;
-    Map<NetNode, Set<NetNode>> nodeToNeighL;
-    
+    final Map<NetNode, NetNode> entrezAlign;
+  
     JaccardSimilarityFunc(Map<NetNode, NetNode> mapG1toG2,
                           Map<NetNode, NetNode> perfectG1toG2,
                           ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                          BTProgressMonitor monitor) throws AsynchExitRequestException {
+                          final Double jaccSimThreshold, BTProgressMonitor monitor)
+            throws AsynchExitRequestException {
       this.mapG1toG2_ = mapG1toG2;
       this.perfectG1toG2_ = perfectG1toG2;
       this.entrezAlign = new HashMap<NetNode, NetNode>();
@@ -496,6 +502,7 @@ public class NodeGroupMap {
       this.linksLarge_ = linksLarge;
       this.lonersLarge_ = lonersLarge;
       this.nameToLarge_ = new HashMap<String, NetNode>();
+      this.jaccSimThreshold_ = jaccSimThreshold;
       this.monitor_ = monitor;
       makeNodeToNeighL();
       constructEntrezAlign();
@@ -518,16 +525,38 @@ public class NodeGroupMap {
       }
       NetNode match = entrezAlign.get(largeNode);
       
-      Set<NetNode> nodeNeigh = nodeToNeighL.get(largeNode);
-      Set<NetNode> matchNeigh = nodeToNeighL.get(match);
+      double jsVal = jaccSimValue(largeNode, match);
+      if (jaccSimThreshold_ == null) {
+        throw new IllegalStateException("JS Threshold is null"); // should never happen
+      }
+      boolean isCorrect = Double.compare(jsVal, jaccSimThreshold_) >= 0;
+      return (isCorrect);
+    }
+  
+    /***************************************************************************
+     **
+     ** Jaccard Similarity between two nodes in G2
+     */
+  
+    double jaccSimValue(NetNode node, NetNode match) {
+      int lenAdjust = 0;
+      HashSet<NetNode> scratchNode = new HashSet<NetNode>(nodeToNeighL.get(node));
+      HashSet<NetNode> scratchMatch = new HashSet<NetNode>(nodeToNeighL.get(match));
       
-      if (nodeNeigh.contains(match)) {
-        nodeNeigh.remove(match);
+      if (scratchNode.contains(match)) {
+        scratchNode.remove(match);
+        scratchMatch.remove(node);
+        lenAdjust = 1;
       }
-      if (matchNeigh.contains(largeNode)) {
-        match.compareTo(largeNode);
-      }
-      return (nodeNeigh.equals(matchNeigh));
+      
+      HashSet<NetNode> union = new HashSet<NetNode>(), intersect = new HashSet<NetNode>();
+      union(scratchNode, scratchMatch, union);
+      intersection(scratchNode, scratchMatch, intersect);
+      
+      int iSize = intersect.size() + lenAdjust;
+      int uSize = union.size() + lenAdjust;
+      double jaccard = (double)(iSize) / (double)uSize;
+      return jaccard;
     }
   
     /***************************************************************************
@@ -555,12 +584,12 @@ public class NodeGroupMap {
   
     private void constructEntrezAlign() {
       for (NetNode node : mapG1toG2_.keySet()) {
-        NetNode converted = perfectG1toG2_.get(node);
-        if (converted == null) {
+        NetNode perfMatch = perfectG1toG2_.get(node);
+        if (perfMatch == null) {
           continue;
         }
-        NetNode matchedWith = mapG1toG2_.get(node);
-        entrezAlign.put(matchedWith, converted);
+        NetNode mainMatch = mapG1toG2_.get(node);
+        entrezAlign.put(mainMatch, perfMatch);
       }
       return;
     }
@@ -591,6 +620,30 @@ public class NodeGroupMap {
       for (NetNode node : lonersLarge_) {
         nodeToNeighL.put(node, new HashSet<NetNode>());
       }
+      return;
+    }
+  
+    /***************************************************************************
+     **
+     ** Set intersection helper
+     */
+  
+    private <T> void intersection(Set<T> one, Set<T> two, Set<T> result) {
+      result.clear();
+      result.addAll(one);
+      result.retainAll(two);
+      return;
+    }
+  
+    /***************************************************************************
+     **
+     ** Set union helper
+     */
+  
+    private <T> void union(Set<T> one, Set<T> two, Set<T> result) {
+      result.clear();
+      result.addAll(one);
+      result.addAll(two);
       return;
     }
     

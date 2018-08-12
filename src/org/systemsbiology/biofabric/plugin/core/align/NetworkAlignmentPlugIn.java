@@ -101,7 +101,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     myCmds_.add(new LoadNetAlignGroupsCmd());
     myCmds_.add(new LoadNetAlignOrphanCmd());
     myCmds_.add(new LoadNetAlignCaseIICmd());
-    myCmds_.add(new NetAlignScoresCmd()); 
+    myCmds_.add(new NetAlignMeasuresCmd());
     publishedNetAlignStats_ = new NetAlignStats();
     pendingNetAlignStats_ = new NetAlignStats();
     
@@ -141,12 +141,12 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   
   public void newNetworkInstalled(Network bfn) {
     // If we are working on an alignment, we will retain the pending stats we are generating. Else, they get dropped.
-  	if (pendingNetAlignStats_.hasStats()) {
-  		publishedNetAlignStats_ = pendingNetAlignStats_;
-  		pendingNetAlignStats_ = new NetAlignStats();
+    if (pendingNetAlignStats_.hasStats()) {
+      publishedNetAlignStats_ = pendingNetAlignStats_;
+      pendingNetAlignStats_ = new NetAlignStats();
   	} else {
-  		publishedNetAlignStats_ = new NetAlignStats();
-  	}
+      publishedNetAlignStats_ = new NetAlignStats();
+    }
     for (BioFabricToolPlugInCmd cmd : myCmds_) {
       ((Enabler)cmd).setEnabled(true);
     }
@@ -249,7 +249,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   */
  
   public void attachXMLData(BioFabricToolPlugInData data) {
-    publishedNetAlignStats_ = (NetAlignStats)data;
+    pendingNetAlignStats_ = (NetAlignStats)data;
     return;   
   }
  
@@ -279,7 +279,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     FileLoadFlows.FileLoadType typeB = flf_.getFileLoadType(nadi.graphB);
     flf_.loadFromASource(nadi.graphB, linksGraphB, lonersGraphB, null, idGen, true, typeB, false);
   
-    return (networkAlignmentStepTwo(nadi, linksGraphA, lonersGraphA, linksGraphB, lonersGraphB, idGen, outType));
+    return (networkAlignmentStepTwo(nadi, linksGraphA, lonersGraphA, linksGraphB, lonersGraphB, nadi.jaccSimThreshold, idGen, outType));
   }
   
   /**************************************************************************
@@ -329,7 +329,8 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   private boolean networkAlignmentStepTwo(NetworkAlignmentDialog.NetworkAlignmentDialogInfo nadi,
                                           ArrayList<NetLink> linksGraphA, HashSet<NetNode> loneNodeIDsGraphA,
                                           ArrayList<NetLink> linksGraphB, HashSet<NetNode> loneNodeIDsGraphB,
-                                          UniqueLabeller idGen, NetworkAlignmentBuildData.ViewType outType) {
+                                          Double jaccSimThreshold, UniqueLabeller idGen,
+                                          NetworkAlignmentBuildData.ViewType outType) {
     //
     // Assign GraphA and GraphB to Graph1 and Graph2
     //
@@ -488,8 +489,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs, 
                                mergedToCorrectNC, isAlignedNode,
                                mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, pendingNetAlignStats_, outType,
-                               nadi.mode, idGen, nadi.align, holdIt);
- 
+                               nadi.mode, jaccSimThreshold, idGen, nadi.align, holdIt);
     }
     pendingNetAlignStats_ = new NetAlignStats();
     return (true);
@@ -540,7 +540,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                            ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                                            NetAlignStats report, 
                                            NetworkAlignmentBuildData.ViewType viewType, 
-                                           NodeGroupMap.PerfectNGMode mode,
+                                           NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold,
                                            UniqueLabeller idGen, File align, File holdIt) {
 
     HashMap<NetNode, String> emptyClustMap = new HashMap<NetNode, String>();
@@ -549,7 +549,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     bd.setLayoutMode(Network.LayoutMode.PER_NETWORK_MODE);
     NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(allLargerNodes, allSmallerNodes, mergedToCorrect,
                                                                    isAlignedNode, report,
-                                                                   viewType, mapG1toG2, perfectMap, linksLarge, lonersLarge, mode);
+                                                                   viewType, mapG1toG2, perfectMap, linksLarge, lonersLarge, mode, jaccSimThreshold);
     bd.setPluginBuildData(nabd);
   
     try {
@@ -682,7 +682,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
    ** Check if G1's nodes are subset of G2's
    */
   
-  private Boolean isG1subsetG2(ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
+  private boolean isG1subsetG2(ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
                                ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge) {
   
     Set<NetNode> nodesG1 = null, nodesG2 = null;
@@ -725,7 +725,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   ** Command
   */
   
-  private class NetAlignScoresCmd implements BioFabricToolPlugInCmd, Enabler {
+  private class NetAlignMeasuresCmd implements BioFabricToolPlugInCmd, Enabler {
    
   	private boolean enabled_;
   	
@@ -749,7 +749,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     }
   
     public boolean isEnabled() {
-      return (enabled_ && publishedNetAlignStats_.hasStats());    
+      return (enabled_ && publishedNetAlignStats_.hasStats());
     } 
   }
  
