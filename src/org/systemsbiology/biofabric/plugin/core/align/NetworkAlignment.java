@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -53,7 +52,7 @@ public class NetworkAlignment {
    
   public static final String                // Ordered as in the default link group order
           COVERED_EDGE = "P",               // Covered Edges
-          GRAPH1 = "B",                     // G1 Edges w/ two aligned nodes (all non-covered G1 Edges)
+          ORPHAN_GRAPH1 = "B",                     // G1 Edges w/ two aligned nodes (all non-covered G1 Edges)
           INDUCED_GRAPH2 = "pRp",           // G2 Edges w/ two aligned nodes (induced)
           HALF_UNALIGNED_GRAPH2 = "pRr",    // G2 Edges w/ one aligned node and one unaligned node
           FULL_UNALIGNED_GRAPH2 = "rRr";    // G2 Edges w/ two unaligned nodes
@@ -305,8 +304,8 @@ public class NetworkAlignment {
     NetAlignFabricLinkLocator comp = new NetAlignFabricLinkLocator();
     sortLinks(newLinksG1);
     
-    SortedSet<NetNode> alignedNodesG2 = new TreeSet<NetNode>(largeToMergedID_.values());
-    // contains all aligned nodes; contains() works in O(log(n))
+    Set<NetNode> alignedNodesG2 = new HashSet<NetNode>(largeToMergedID_.values());
+    // contains all aligned nodes; contains() works in O(1)
   
     for (NetLink linkG2 : newLinksG2) {
       
@@ -336,7 +335,7 @@ public class NetworkAlignment {
       int index = Collections.binarySearch(newLinksG2, linkG1, comp);
       
       if (index < 0) {
-        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), GRAPH1);
+        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), ORPHAN_GRAPH1);
       }
       lr.report();
     }
@@ -434,7 +433,7 @@ public class NetworkAlignment {
       
       Set<NetNode> blueNodesG1 = new TreeSet<NetNode>();
       for (NetLink link : mergedLinks) { // find the nodes of interest
-        if (link.getRelation().equals(GRAPH1)) {
+        if (link.getRelation().equals(ORPHAN_GRAPH1)) {
           blueNodesG1.add(link.getSrcNode()); // it's a set - so with shadows no duplicates
           blueNodesG1.add(link.getTrgNode());
         }

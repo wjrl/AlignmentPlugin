@@ -140,7 +140,7 @@ public class NetworkAlignmentEdgeLayout extends DefaultEdgeLayout {
       if(rel.equals(NetworkAlignment.COVERED_EDGE)) {
         return NodeGroupMap.PURPLE_EDGES;
         
-      } else if (rel.equals(NetworkAlignment.GRAPH1)) {
+      } else if (rel.equals(NetworkAlignment.ORPHAN_GRAPH1)) {
         return NodeGroupMap.BLUE_EDGES;
         
       } else if (rel.equals(NetworkAlignment.INDUCED_GRAPH2)) {

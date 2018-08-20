@@ -266,20 +266,21 @@ public class NetworkAlignmentLayout extends NodeLayout {
     List<NetNode> queue = queuesGroup.get(currGroup);
     List<NetNode> leftToGo = targsLeftToGoGroup.get(currGroup);
     
-    LoopReporter lr = new LoopReporter(leftToGo.size(), 20, monitor, startFrac, endFrac, "progress.nodeOrdering");
+    LoopReporter lr = new LoopReporter(targsPerSource.size(), 20, monitor, startFrac, endFrac, "progress.nodeOrdering");
     int lastSize = leftToGo.size();
   
     while (! queue.isEmpty()) {
       
       NetNode node = queue.remove(0);
-      int ttgSize = targsLeftToGoGroup.get(currGroup).size();
-      lr.report(lastSize - ttgSize);
-      lastSize = ttgSize;
       
       if (targetsGroup.get(currGroup).contains(node)) {
         continue; // visited each node only once
       }
       targetsGroup.get(currGroup).add(node);
+  
+      int ttgSize = leftToGo.size();
+      lr.report(lastSize - ttgSize);
+      lastSize = ttgSize;
       
       if (grouper.getIndex(node) != currGroup) {
         throw new IllegalStateException("Node of incorrect group in queue");
