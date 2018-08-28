@@ -82,7 +82,7 @@ public class AlignCycleEdgeLayout extends DefaultEdgeLayout {
     
     List<String> groupOrder = new ArrayList<String>();
 
-    groupOrder.add(NetworkAlignment.GRAPH1);
+    groupOrder.add(NetworkAlignment.ORPHAN_GRAPH1);
     groupOrder.add(NetworkAlignment.COVERED_EDGE);
     groupOrder.add(NetworkAlignment.INDUCED_GRAPH2);
     groupOrder.add(NetworkAlignment.HALF_UNALIGNED_GRAPH2);

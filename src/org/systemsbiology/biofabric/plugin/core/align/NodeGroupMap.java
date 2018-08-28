@@ -46,7 +46,7 @@ import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
  ** LG = LINK GROUP
  **
  ** FIRST LG  = PURPLE EDGES           // COVERERED EDGE
- ** SECOND LG = BLUE EDGES             // GRAPH1
+ ** SECOND LG = BLUE EDGES             // ORPHAN_GRAPH1
  ** THIRD LG  = RED EDGES              // INDUCED_GRAPH2
  ** FOURTH LG = ORANGE EDGES           // HALF_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
  ** FIFTH LG  = YELLOW EDGES           // FULL_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
@@ -219,7 +219,7 @@ public class NodeGroupMap {
     // See which types of link groups the node's links are in
     //
     
-    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.GRAPH1,
+    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.ORPHAN_GRAPH1,
             NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
     boolean[] inLG = new boolean[NUMBER_LINK_GROUPS];
     
@@ -320,7 +320,7 @@ public class NodeGroupMap {
   
   private void calcLGRatios() throws AsynchExitRequestException {
     
-    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.GRAPH1,
+    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.ORPHAN_GRAPH1,
             NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
     double size = links_.size();
     
