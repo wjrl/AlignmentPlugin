@@ -209,6 +209,8 @@ public class NetworkAlignmentLayout extends NodeLayout {
     //
     // Start breadth-first-search on first node group
     //
+    
+    LoopReporter lr2 = new LoopReporter(targsToGo.size(), 20, monitor, 0.0, 1.0, "progress.nodeOrdering");
 
     int currGroup = 0;
     while (currGroup < grouper.numGroups()) {
@@ -223,9 +225,10 @@ public class NetworkAlignmentLayout extends NodeLayout {
         queueGroup.get(currGroup).add(head);
       }
       
-      flushQueue(targetsGroup, targsPerSource, linkCounts, targsToGo, targsLeftToGoGroup, queueGroup,
-              monitor, .25, 1.00, currGroup, grouper);
+      flushQueue(targetsGroup, targsPerSource, linkCounts, targsToGo, targsLeftToGoGroup, queueGroup, currGroup, grouper, lr2);
     }
+    
+    lr2.finish();
     
     //
     // Add lone nodes and "flatten" out the targets into one list
@@ -245,7 +248,6 @@ public class NetworkAlignmentLayout extends NodeLayout {
 
     installAnnotations(bd, targetsGroup, grouper);
     
-    UiUtil.fixMePrintout("Loop Reporter all messed up in NetworkAlignmentLayout.FlushQueue");
     return (targets);
   }
   
@@ -259,27 +261,21 @@ public class NetworkAlignmentLayout extends NodeLayout {
                           Map<NetNode, Integer> linkCounts,
                           Set<NetNode> targsToGo, SortedMap<Integer, List<NetNode>> targsLeftToGoGroup,
                           SortedMap<Integer, List<NetNode>> queuesGroup,
-                          BTProgressMonitor monitor, double startFrac, double endFrac, final int currGroup,
-                          NodeGroupMap grouper)
+                          final int currGroup, NodeGroupMap grouper, LoopReporter lr)
           throws AsynchExitRequestException {
     
     List<NetNode> queue = queuesGroup.get(currGroup);
     List<NetNode> leftToGo = targsLeftToGoGroup.get(currGroup);
     
-    LoopReporter lr = new LoopReporter(leftToGo.size(), 20, monitor, startFrac, endFrac, "progress.nodeOrdering");
-    int lastSize = leftToGo.size();
   
     while (! queue.isEmpty()) {
-      
       NetNode node = queue.remove(0);
-      int ttgSize = targsLeftToGoGroup.get(currGroup).size();
-      lr.report(lastSize - ttgSize);
-      lastSize = ttgSize;
       
       if (targetsGroup.get(currGroup).contains(node)) {
         continue; // visited each node only once
       }
       targetsGroup.get(currGroup).add(node);
+      lr.report();
       
       if (grouper.getIndex(node) != currGroup) {
         throw new IllegalStateException("Node of incorrect group in queue");
@@ -307,7 +303,6 @@ public class NetworkAlignmentLayout extends NodeLayout {
         }
       }
     }
-    lr.finish();
     return;
   }
   
