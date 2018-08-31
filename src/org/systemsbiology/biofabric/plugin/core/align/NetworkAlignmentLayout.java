@@ -267,6 +267,11 @@ public class NetworkAlignmentLayout extends NodeLayout {
     List<NetNode> queue = queuesGroup.get(currGroup);
     List<NetNode> leftToGo = targsLeftToGoGroup.get(currGroup);
     
+<<<<<<< HEAD
+=======
+    LoopReporter lr = new LoopReporter(targsPerSource.size(), 20, monitor, startFrac, endFrac, "progress.nodeOrdering");
+    int lastSize = leftToGo.size();
+>>>>>>> branch 'master' of https://github.com/wjrl/AlignmentPlugin.git
   
     while (! queue.isEmpty()) {
       NetNode node = queue.remove(0);
@@ -275,7 +280,14 @@ public class NetworkAlignmentLayout extends NodeLayout {
         continue; // visited each node only once
       }
       targetsGroup.get(currGroup).add(node);
+<<<<<<< HEAD
       lr.report();
+=======
+  
+      int ttgSize = leftToGo.size();
+      lr.report(lastSize - ttgSize);
+      lastSize = ttgSize;
+>>>>>>> branch 'master' of https://github.com/wjrl/AlignmentPlugin.git
       
       if (grouper.getIndex(node) != currGroup) {
         throw new IllegalStateException("Node of incorrect group in queue");
