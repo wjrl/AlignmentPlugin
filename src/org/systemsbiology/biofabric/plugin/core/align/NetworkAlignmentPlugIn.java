@@ -271,7 +271,10 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     HashSet<NetNode> lonersGraphA = new HashSet<NetNode>();
     
     FileLoadFlows.FileLoadType typeA = flf_.getFileLoadType(nadi.graphA);
-    flf_.loadFromASource(nadi.graphA, linksGraphA, lonersGraphA, null, idGen, true, typeA, false);
+    FileLoadFlows.FileLoadResult flr = flf_.loadFromASource(nadi.graphA, linksGraphA, lonersGraphA, null, idGen, true, typeA, false);
+    File cacheFile = flr.getCacheFile();
+    
+    
     
     ArrayList<NetLink> linksGraphB = new ArrayList<NetLink>();
     HashSet<NetNode> lonersGraphB = new HashSet<NetNode>();
@@ -279,7 +282,8 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     FileLoadFlows.FileLoadType typeB = flf_.getFileLoadType(nadi.graphB);
     flf_.loadFromASource(nadi.graphB, linksGraphB, lonersGraphB, null, idGen, true, typeB, false);
   
-    return (networkAlignmentStepTwo(nadi, linksGraphA, lonersGraphA, linksGraphB, lonersGraphB, nadi.jaccSimThreshold, idGen, outType));
+    return (networkAlignmentStepTwo(nadi, linksGraphA, lonersGraphA, linksGraphB, lonersGraphB, 
+    		                            nadi.jaccSimThreshold, idGen, outType, cacheFile));
   }
   
   /**************************************************************************
@@ -330,7 +334,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                           ArrayList<NetLink> linksGraphA, HashSet<NetNode> loneNodeIDsGraphA,
                                           ArrayList<NetLink> linksGraphB, HashSet<NetNode> loneNodeIDsGraphB,
                                           Double jaccSimThreshold, UniqueLabeller idGen,
-                                          NetworkAlignmentBuildData.ViewType outType) {
+                                          NetworkAlignmentBuildData.ViewType outType, File cacheFile) {
     //
     // Assign GraphA and GraphB to Graph1 and Graph2
     //
@@ -387,15 +391,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     
     boolean doingPerfectGroup = (outType == NetworkAlignmentBuildData.ViewType.GROUP) && 
                                 (perfectG1toG2 != null);
-       
-    File holdIt;
-    try {
-      holdIt = File.createTempFile("BioFabricHold", ".zip");
-      holdIt.deleteOnExit();
-    } catch (IOException ioex) {
-      holdIt = null;
-    }
-    
+           
     //
     // First process the given (main) alignment
     //
@@ -412,7 +408,8 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     }
     
     boolean finished = nab.processNetAlign(mergedLinks, mergedLoneNodeIDs, mapG1toG2, perfectG1toG2, mergedToCorrectNC,
-            isAlignedNode, linksSmall, lonersSmall, linksLarge, lonersLarge, relMap, outType, idGen, holdIt);
+                                           isAlignedNode, linksSmall, lonersSmall, linksLarge, lonersLarge, 
+                                           relMap, outType, idGen, cacheFile);
   
     //
     // Second process the perfect alignment (if given)
@@ -440,12 +437,12 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       
       finished = nab.processNetAlign(mergedLinksPerfect, mergedLoneNodeIDsPerfect, perfectG1toG2, null, null,
               isAlignedNodePerfect, linksSmall, lonersSmall, linksLarge, lonersLarge, relMapPerfect, 
-              NetworkAlignmentBuildData.ViewType.GROUP, idGen, holdIt);
+              NetworkAlignmentBuildData.ViewType.GROUP, idGen, cacheFile);
     }
   
     // i.e. same 2 graphs and perfect alignment yield an empty network
     
-    if (mergedLinks.isEmpty()) {
+    if (finished && mergedLinks.isEmpty()) {
       JOptionPane.showMessageDialog(topWindow_, rMan_.getPluginString("networkAlignment.emptyNetwork"),
               rMan_.getPluginString("networkAlignment.emptyNetworkTitle"),
               JOptionPane.WARNING_MESSAGE);
@@ -453,12 +450,12 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     }
   
     if (finished) { // for main alignment      
-      finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, holdIt, true, false);
+      finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, false);
     }
     
     if (finished && doingPerfectGroup) { // for perfect alignment
       finished = flf_.handleDirectionsDupsAndShadows(mergedLinksPerfect, mergedLoneNodeIDsPerfect, false, relMapPerfect, 
-      																							 reducedLinksPerfect, holdIt, true, true);
+      																							 reducedLinksPerfect, cacheFile, true, true);
     }
   
     if (finished) { // Score Report
@@ -489,7 +486,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs, 
                                mergedToCorrectNC, isAlignedNode,
                                mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, pendingNetAlignStats_, outType,
-                               nadi.mode, jaccSimThreshold, idGen, nadi.align, holdIt);
+                               nadi.mode, jaccSimThreshold, idGen, nadi.align, cacheFile);
     }
     pendingNetAlignStats_ = new NetAlignStats();
     return (true);
