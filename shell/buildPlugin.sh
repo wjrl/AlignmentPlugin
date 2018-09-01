@@ -7,9 +7,9 @@ VER=$3
 rm META-INF/.DS_Store
 jar cvf AlignmentPlugin.jar META-INF org
 
-echo -n "Enter the key:"
-read -s PERM
-echo
+#echo -n "Enter the key:"
+#read -s PERM
+#echo
 
 # Sign the jar file:
 #jarsigner -storetype pkcs12 -storepass ${PERM} -keystore ${KEYDIR}/isbcert.p12 -tsa http://timestamp.comodoca.com/rfc3161 \
