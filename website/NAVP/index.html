@@ -1,0 +1,212 @@
+<html>
+<head>
+<title>BioFabric Network Alignment Visualization Package (BF-NAVP)</title>
+<link rel="shortcut icon" href="http://www.BioFabric.org/favicon.ico" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<meta name="description" content="BioFabric is an interactive tool for visualizing and exploring large networks.">
+<meta name="keywords" content="networks, network visualization, systems biology software, graph layout, open-source, combing the hairball">
+<style>
+body{
+font-family: Arial, Helvetica, sans-serif;
+}
+</style>
+</head>
+<body>
+<center>
+<table>
+<tr>
+<td>
+<a href="http://www.systemsbiology.org">
+<img src="images/logo-isb.png" border="0" alt="ISB Logo"/>
+</a>
+</td>
+<td>
+<a href="http://www.BioFabric.org/">
+
+<img src="images/BioFabric20.png" width="576" height="214" border="0" alt="BioFabric" hspace="30"/>
+</a>
+</td>
+</tr>
+</table>
+</center>
+
+<hr noshade="true"/>
+
+<center>
+<h1>BioFabric Network Alignment Visualization Plugin (BF-NAVP)</h1>
+</center>
+
+<table>
+<tr>
+<td width="150" valign="top">
+<table cols="1">
+<tr><td bgcolor="#E0E0E0"><font size="2"><b>Contents</b></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#description">Description</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#download">Download and Installation</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#docs">Documentation</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#pub">Publications</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#sourcecode">Source Code</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#feedback">Send Feedback</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#credits">Credits</a></font></td></tr>
+<tr><td bgcolor="#F0FOF0"><font size="2"><a href="#licenseagreement">License and Disclaimer</a></font></td></tr>
+</table>
+</td>
+<td valign="top">
+<center>
+<table width="70%" cols="1">
+<tr><th bgcolor="#E0E0E0"><center>News</center></th></tr>
+<tr><td bgcolor="#E0E0E0"><center><b>September XX, 2018:</b> The BF-NAVP manuscript has been submitted</br></center></td></tr>
+</table>
+</center>
+
+<hr noshade="true" width="67%"/>
+
+<a name="description"/>
+<h3>Description</h3>
+
+<center>
+<img src="images/yeastPerfect900pix.png" width="900" height="180" border="1" alt="BF-NAVP Network"/></a>
+</center>
+
+
+
+<p>
+The BioFabric Network Alignment Visualization Plugin (BF-NAVP) is a software tool that is designed to give network researchers the ability to usefully visualize
+the results of a network alignment, even for very large networks. NAVP provides the user with new insights into network alignment deficiencies that are 
+not revealed through the simple evaluation and comparison of the standard numerical topological measures. 
+</p>
+Significant features for NAVP:
+<ul>
+<li>
+Node groups and link groups provide a flexible method to characterize an alignment's topology. With BioFabric V2, node and link group annotations clearly highlight the different groups.
+</li>
+<li>
+The Group Layout allows users to visually assess common topological measures such as Edge Coverage (EC), Symmetric Substructure Score (S3), and Induced Conserved Structure (ICS).
+</li>
+<li>
+The Cycle Layout allows users to find small and large scale misalignments when the perfect alignment is provided.
+</li>
+<li>
+Our novel measures Jaccard Similarity (JS), Node Group Similarity (NGS), and Link Group Similarity (LGS) provide advantages over traditional methods, such as Node Correctness (NC), when comparing a generated alignment to the perfect alignment.
+</li>
+<li>
+BioFabric provides the values of many common alignment measures, including EC, S3, ICS, and NC. It also includes our JS, NGS, and LGS.
+</li>
+<li>
+ Visually asses objective functions' performance on a pair of networks: BioFabric lets the user <i> see </i> how single measures and combinations of measures within objective functions affect the generated alignment's topology.
+</li>
+<li>
+ Lay correctly and incorrectly aligned nodes separately in the Group Layout. The user can choose the criterion for the correct alignment to be either Node Correctness or Jaccard Similarity (user can set the threshold value).
+</li>
+</ul>
+
+<hr noshade="true" width="67%"/>
+<a name="download"/>
+<h3>Download and Installation</h3>
+
+<h4>Preparations</h4>
+<p>
+BF-NAVP requires that the user first install BioFabric Version 2 (Beta), which is currently under development. BioFabric is written in Java, and can be run 
+on your Windows, Mac, or Linux computer. For Windows, you will first need to install the Java Runtime Environment (JRE), which can be downloaded from 
+<a href="http://www.java.com/">here</a> (click the "Free Java Download" button). For the Mac, the executable already contains the JRE.
+</p>
+<p>
+<b>NOTE:</b> Downloadable executables for BioFabric Version 2 (Beta) are still in preparation. In the meantime, the program can be built from source code 
+available from the <a href="https://github.com/wjrl/BioFabric">GitHub</a> page.
+</p>
+<h4>Installing the Plugin</h4>
+<p>
+NAVP is written as a BioFabric Plugin. To install it, you will simply drop the <code>AlignmentPlugin.jar</code> file available (soon) on 
+the <a href="https://github.com/wjrl/AlignmentPlugin">GitHub</a> project page into a directory on your computer. Start BioFabric, and use 
+<b>File->Set Plugin Directory...</b> to point to that directory where you have placed <code>AlignmentPlugin.jar</code>. Restart BioFabric,
+and the NAVP commands will appear in the <b>Tools->Network Alignment</b> menu.
+</p>
+
+<hr noshade="true" width="67%"/>
+<a name="docs"/>
+<h3>Documentation</h3>
+<p>
+More complete documentation is being prepared. 
+</p>
+<p>
+To get started, once the plugin has been installed, NAVP commands can be run from the main <b>Tools->Network Alignment</b> menu. NAVP supports both SIF 
+and LEDA (GW) graph file formats, and the ALIGN file format for alignment files. The graphs must be undirected. 
+</p>
+<p>
+Available commands include:
+<ul>
+<li>
+<b>Edge Group Layout...</b> will use the Default Node and Link Group Layout algorithm. 
+</li>
+<li>
+<b>Orphan Edge Layout...</b> will show only the Blue edges and the edges of nodes present in the Blue link group.
+</li>
+<li>
+<b>Alignment Cycle layout...</b> will highlight misalignments of clusters and cliques.
+</li>
+<li>
+  <b>Alignment Measures...</b> will show common measures once an alignment has been loaded.
+</li>
+</ul>
+
+<hr noshade="true" width="67%"/>
+<a name="pub"/>
+<h3>Publications</h3>
+<ul>
+<li>
+Desai, R., Longabaugh, W.J.R., and Hayes, W. <i>BioFabric Visualization of Network Alignments</i> (currently in preparation)
+</li>
+</ul>
+
+<hr noshade="true" width="67%"/>
+<a name="sourcecode"/>
+<h3>Source Code</h3>
+<p>
+BioFabric source code is available on the <a href="https://github.com/wjrl/BioFabric">BioFabric GitHub</a> project page. BF-NAVP source code is available 
+on the <a href="https://github.com/wjrl/AlignmentPlugin">BF-NAVP GitHub</a> project page.
+</p>
+
+<hr noshade="true" width="67%"/>
+<a name="feedback"/>
+<h3>Send Feedback</h3>
+If you have any feedback you wish to send along, such as questions, bug reports, feature requests, and 
+usability issues, you can send email to:
+<center>
+<blockquote>
+<code>wlongabaugh -a~t- systemsbiology -d~o~t- org</code>
+</blockquote>
+</center>
+
+<hr noshade="true" width="67%"/>
+<a name="credits"/>
+<h3>Credits</h3>
+<p>
+BF-NAVP was created by Rishi Desai, William Longabaugh, and Wayne Hayes.
+</p>
+
+<hr noshade="true" width="67%"/>
+<a name="licenseagreement"/>
+<h3>License and Disclaimer</h3>
+<p>
+This software is licensed under the GNU Lesser General Public 
+License (LGPL), which is a standard "free software"
+and "open source" license.  A copy of the license agreement 
+is available online <a href="licenses/License.html">here</a>.  Note that
+some of the toolbar icons are distributed under <a href="licenses/LICENSE-SUN.txt">this</a> license.
+</p>
+<p>
+BioFabric is under continual development, and despite our best efforts 
+there are bugs in the software.  Please be advised that, as stated in the 
+license agreement, the Institute for Systems Biology, the University of California, 
+and the authors disclaim any liability stemming from the use of this software.
+</p>
+</td>
+</tr>
+</table>
+<hr noshade="true"/>
+
+<p>
+<b>Last updated: September XX, 2018</b>
+</p>
+</body>
+</html>
