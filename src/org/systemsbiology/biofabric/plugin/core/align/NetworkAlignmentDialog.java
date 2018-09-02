@@ -39,7 +39,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import org.systemsbiology.biofabric.api.dialog.BTStashResultsDialog;
-import org.systemsbiology.biofabric.api.dialog.DialogSupport;
+import org.systemsbiology.biofabric.api.dialog.DialogObj;
 import org.systemsbiology.biofabric.api.io.FileLoadFlows;
 import org.systemsbiology.biofabric.api.util.ExceptionHandler;
 import org.systemsbiology.biofabric.api.util.FixedJButton;
@@ -226,7 +226,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     // OK button
     //
     
-    DialogSupport.Buttons buttons = finishConstruction();
+    DialogObj.Buttons buttons = finishConstruction();
     
     buttonOK_ = buttons.okButton;
     buttonOK_.setEnabled(false);

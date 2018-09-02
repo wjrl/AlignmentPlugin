@@ -30,7 +30,7 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
 import org.systemsbiology.biofabric.api.dialog.BTStashResultsDialog;
-import org.systemsbiology.biofabric.api.dialog.DialogSupport;
+import org.systemsbiology.biofabric.api.dialog.DialogObj;
 import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 
 public class NetAlignMeasureDialog extends BTStashResultsDialog {
@@ -76,7 +76,7 @@ public class NetAlignMeasureDialog extends BTStashResultsDialog {
       addWidgetFullRow(new JLabel(noM), false);
     }
     
-    DialogSupport.Buttons buttons = finishConstruction();
+    DialogObj.Buttons buttons = finishConstruction();
     buttons.cancelButton.setVisible(false);
   
     setLocationRelativeTo(parent);
