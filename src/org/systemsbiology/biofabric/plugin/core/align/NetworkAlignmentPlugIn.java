@@ -1029,16 +1029,16 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       return (false);
     }
     
-    public void handleCancellation() {
+    public boolean handleCancellation() {
       finished_ = false;
-      flf_.cancelAndRestore(holdIt_);
+      return (flf_.cancelAndRestore(holdIt_));
     }
     
     public void cleanUpPreEnable(Object result) {
       return;
     }
     
-    public void cleanUpPostRepaint(Object result) {
+    public void cleanUpPostRepaint(Object result, boolean skipImage) {
       return;
     }
   }  
@@ -1148,17 +1148,16 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       return (false);
     }
   
-    public void handleCancellation() {
+    public boolean handleCancellation() {
       finished_ = false;
-      flf_.cancelAndRestore(holdIt_);
-      return;
+      return (flf_.cancelAndRestore(holdIt_));
     }
   
     public void cleanUpPreEnable(Object result) {
       return;
     }
   
-    public void cleanUpPostRepaint(Object result) {
+    public void cleanUpPostRepaint(Object result, boolean skipImage) {
       return;
     }
   }
