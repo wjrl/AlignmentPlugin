@@ -556,7 +556,7 @@ public class NodeGroupMap {
       int iSize = intersect.size() + lenAdjust;
       int uSize = union.size() + lenAdjust;
       double jaccard = (double)(iSize) / (double)uSize;
-      return jaccard;
+      return (jaccard);
     }
   
     /***************************************************************************
