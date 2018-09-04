@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+
+<!--
+  Copyright (C) 2003-2018 by Institute for Systems Biology,
+  Seattle, Washington, USA.  All rights reserved.
+  
+  This source code is distributed under the GNU Lesser 
+  General Public License, the text of which is available at:
+    http://www.gnu.org/copyleft/lesser.html
+ -->
+
+<!--
+build.xml
+
+Here are the targets that count:
+ buildPluginJar
+ signJar
+-->
+
+<!DOCTYPE BuildFile [
+<!ENTITY % AppConfig SYSTEM "config/AppConfig.dtd">
+%AppConfig;
+]>
+
+<project name="AlignmentPlugin" default="buildPluginJar" basedir=".">
+
+  <property environment="env"/>
+
+  <property name="app.releaseDir"               location="${env.HOME}/AlignPluginRelease" />
+  <property name="app.extLibDir"                location="${app.releaseDir}/extlib" />	
+  <property name="app.keyStoreDir"              location="${app.releaseDir}/KeyFiles" />	
+  <property name="app.buildDir"                 location="${app.releaseDir}/build" />
+  <property name="app.version"                  value="&appVersion;" />
+  <property name="app.NDversion"                value="&appNDVersion;" />
+  <property name="app.datedVersion"             value="&appDatedVersion;" />
+  <property name="app.date"                     value="&appDate;" />
+  <property name="app.year"                     value="&appYear;" />
+  <property name="app.rootPackage"              value="org" />
+  <property name="app.classesDir"               location="${app.releaseDir}/classes" />
+  <property name="app.srcDir"                   location="src" />
+  <property name="app.signDir"                  location="${app.releaseDir}/signing" />	
+  <property name="app.baseDir"                  location="${app.srcDir}/org" />
+  <property name="app.licenseDir"               location="${app.srcDir}/org/systemsbiology/biofabric/plugin/core/align/license" />
+  <property name="app.classesLicenseDir"        location="${app.classesDir}/org/systemsbiology/biofabric/plugin/core/align/license" />
+  <property name="app.jarFile"                  value="${app.buildDir}/VISNAB-V${app.version}.jar" />
+  <property name="app.signJarFile"              value="${app.signDir}/sVISNAB-V${app.version}.jar" />
+  <property name="app.signedJarDir"             location="CodeSigning" />
+  <property name="app.signJar"                  value="${basedir}/releaseTools/signIt.sh" />
+
+<!-- Get the classpath to include external libraries -->
+
+  <path id="app.classpath">
+    <pathelement location="${app.classesDir}" />
+    <fileset dir="${app.extLibDir}"> 
+      <include name="bioFabric-V2.0.B.1.jar" />
+    </fileset>
+  </path>
+
+<!-- Compiles -->
+
+  <target name="compile15">
+    <mkdir dir="${app.classesDir}" />
+    <javac srcdir="${app.srcDir}"
+           destdir="${app.classesDir}"
+           source="1.5"
+           target="1.5"
+           debug="on"
+    	   includeantruntime="false">
+      <classpath refid="app.classpath" />
+      <compilerarg value="-Xlint:none"/>
+    </javac>
+  </target>
+
+
+<!-- Clean -->
+
+  <target name="clean">
+    <delete dir="${app.buildDir}" quiet="yes" />
+    <delete dir="${app.classesDir}" quiet="yes" />
+  </target>
+	
+<!-- Copying -->
+
+  <target name="copyResources">
+    <copy todir="${app.classesDir}">
+      <fileset dir="${app.srcDir}">
+        <include name="**/biofabric/plugin/core/align/*.properties" />
+        <include name="**/biofabric/plugin/core/align/license/*" />
+      </fileset>
+    </copy>
+  </target>
+
+<!-- Executables -->
+		
+  <target name="signJar" depends="buildPluginJar">
+     <delete dir="${app.signDir}" quiet="true" />
+     <mkdir dir="${app.signDir}" />
+  	 <copy file="${app.jarFile}" todir="${app.signDir}" />
+  	 <echo message="Need password! Execute: ${app.signJar} ${app.keyStoreDir} ${app.signDir} ${app.version}"/>
+  </target>
+
+<!-- Build the JAR file: -->
+
+  <target name="buildPluginJar" depends="clean, compile15, copyResources">
+    <mkdir dir="${app.buildDir}" />
+    <jar destfile="${app.jarFile}" basedir="${app.classesDir}">
+       <service type="org.systemsbiology.biofabric.plugin.BioFabricToolPlugIn"
+                provider="org.systemsbiology.biofabric.plugin.core.align.NetworkAlignmentPlugIn"/>
+    </jar>
+  </target>
+
+</project>
+
