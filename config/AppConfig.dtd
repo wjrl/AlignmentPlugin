@@ -4,10 +4,10 @@
 <!ENTITY appVersionMajor "1">
 <!ENTITY appVersionMinor "0">
 <!ENTITY appVersionPatch "0">
-<!ENTITY appVersionBuild "0">
+<!ENTITY appVersionBuild "1">
 <!ENTITY appVersion "&appVersionMajor;.&appVersionMinor;.&appVersionPatch;.&appVersionBuild;">
 <!ENTITY appNDVersion "&appVersionMajor;&appVersionMinor;&appVersionPatch;&appVersionBuild;">
-<!ENTITY appDate "Mon Sep 3 22:20:23 PDT 2018">
+<!ENTITY appDate "Tue Sep 4 00:35:15 PDT 2018">
 <!ENTITY appDatedVersion "&appVersion; &appDate;">
 <!ENTITY appYear "2018">
 
