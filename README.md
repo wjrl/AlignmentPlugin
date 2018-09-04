@@ -11,4 +11,4 @@ VISNAB requires that the user first install BioFabric Version 2 (Beta), which is
 
 ### Installing the Plugin
 
-VISNAB is written as a BioFabric plugin. To install it, simply drop the `sVISNAB-V1.0.0.0.jar` file into a directory on your computer. Start BioFabric, and use __File->Set Plugin Directory...__ to point to the *directory* where you have placed `sVISNAB-V1.0.0.0.jar`. Restart BioFabric, and the VISNAB commands will appear in the __Tools->Network Alignment__ menu. 
+VISNAB is written as a BioFabric plugin. The compiled JAR file is available in the downloads directory or this repo. To install it, simply drop the `sVISNAB-V1.0.0.0.jar` file into a directory on your computer. Start BioFabric, and use __File->Set Plugin Directory...__ to point to the *directory* where you have placed `sVISNAB-V1.0.0.0.jar`. Restart BioFabric, and the VISNAB commands will appear in the __Tools->Network Alignment__ menu. 
