@@ -19,7 +19,7 @@ for Macs (named `BioFabricInstallImageV2BetaRel1.dmg`). These are both available
 * __Windows:__ Unzip the <`BioFabric20B1.zip` file and drag the `BioFabric.exe` file out of the archive and 
 drop it on your desktop. Double-clicking on the desktop 
 icon will start the program running. On Windows, you will probably need to agree to run software from an unknown publisher, or read a 
-message that "Windows protected your PC", that the app is unrecognized, and you will need to click on the __More info__ link gives you 
+message that "Windows protected your PC", that the app is unrecognized, and you will need to click on the __More info__ link to be able to choose
 the option to __Run Anyway__. (Note: The executable file *has been signed*, but the signing certificate has currently expired.) 
 
 
@@ -32,7 +32,7 @@ If you take this step, you may wish to reset it back to __App Store__ after star
 
 ### Installing the Plugin
 
-The __VISNAB__ plugin is a Java JAR file. This compiled JAR file is available on the [VISNAB GitHub repository release page](https://github.com/wjrl/AlignmentPlugin/releases/tag/v1.0.0.1). To install it, download the `VISNAB-V1.0.0.1.jar` file, then simply drop that file into
+The __VISNAB__ plugin is a Java JAR file. This compiled JAR file is available on the [VISNAB GitHub repository release page](https://github.com/wjrl/AlignmentPlugin/releases/tag/v1.0.0.1). To install it, download the `sVISNAB-V1.0.0.1.jar` file, then simply drop that file into
  a directory on your computer. (Note that there should be only one copy of the VISNAB JAR file in that directory.) 
  Start BioFabric, and use __File->Set Plugin Directory...__ to point to the *directory* where you have placed 
 `sVISNAB-V1.0.0.1.jar`. Restart BioFabric, and the VISNAB commands will appear in the __Tools->Network Alignment__ menu.
