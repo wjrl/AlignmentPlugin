@@ -411,6 +411,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                            isAlignedNode, linksSmall, lonersSmall, linksLarge, lonersLarge, 
                                            relMap, outType, idGen, cacheFile);
   
+    System.out.println(mergedLoneNodeIDs + "   h");
     //
     // Second process the perfect alignment (if given)
     //
@@ -458,11 +459,11 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       																							 reducedLinksPerfect, cacheFile, true, true);
     }
   
-    if (finished) { // Score Report
-      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, isAlignedNode, mergedToCorrectNC,
-              reducedLinksPerfect, mergedLoneNodeIDsPerfect, isAlignedNodePerfect, pendingNetAlignStats_,
-              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
-    }
+//    if (finished) { // Score Report
+//      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDsRed, isAlignedNode, mergedToCorrectNC,
+//              reducedLinksPerfect, mergedLoneNodeIDsPerfect, isAlignedNodePerfect, pendingNetAlignStats_,
+//              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
+//    }
    
     if (finished) { // Load the alignments
       
@@ -483,7 +484,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
         allSmallerNodes.add(ll.getTrgNode());
       }
   
-      networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs, 
+      networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs,
                                mergedToCorrectNC, isAlignedNode,
                                mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, pendingNetAlignStats_, outType,
                                nadi.mode, jaccSimThreshold, idGen, nadi.align, cacheFile);
@@ -589,7 +590,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       struct.linksSmall = linksGraphB;
       struct.lonersSmall = loneNodeIDsGraphB;
       return (true);
-    } else if (numNodesA < numNodesB) {
+    } else if (numNodesA <= numNodesB) { // (case always true) will change later to correct - Rishi Desai 11/21/2018
       // G1 = A, G2 = B
       struct.linksLarge = linksGraphB;
       struct.lonersLarge = loneNodeIDsGraphB;

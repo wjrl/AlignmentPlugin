@@ -88,11 +88,28 @@ public class NodeGroupMap {
   public static final int
           PURPLE_EDGES = 0,
           BLUE_EDGES = 1,
-          RED_EDGES = 2,
-          ORANGE_EDGES = 3,
-          YELLOW_EDGES = 4;
+          CYAN_EDGES = 2,
+          GREEN_EDGES = 3,
+          RED_EDGES = 4,
+          ORANGE_EDGES = 5,
+          YELLOW_EDGES = 6;
   
-  public static final int NUMBER_LINK_GROUPS = 5;   // 0..4
+  public enum EdgeType {
+    COVERED("P", 0),
+    INDUCED_GRAPH1("pBp", 1), HALF_ORPHAN_GRAPH1("pBb", 2), FULL_ORPHAN_GRAPH1("bBb", 3),
+    INDUCED_GRAPH2("pRp", 4), HALF_UNALIGNED_GRAPH2("pRr", 5), FULL_UNALIGNED_GRAPH2("rRr", 6);
+  
+    public final String tag;
+    public final int index;
+    
+    EdgeType(String tag, int index) {
+      this.tag = tag;
+      this.index = index;
+    }
+    
+  }
+  
+  public static final int NUMBER_LINK_GROUPS = 7;   // 0..6
   
   public enum PerfectNGMode {
     NONE, NODE_CORRECTNESS, JACCARD_SIMILARITY
@@ -219,7 +236,7 @@ public class NodeGroupMap {
     // See which types of link groups the node's links are in
     //
     
-    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.ORPHAN_GRAPH1,
+    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
             NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
     boolean[] inLG = new boolean[NUMBER_LINK_GROUPS];
     
@@ -320,7 +337,7 @@ public class NodeGroupMap {
   
   private void calcLGRatios() throws AsynchExitRequestException {
     
-    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.ORPHAN_GRAPH1,
+    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
             NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
     double size = links_.size();
     

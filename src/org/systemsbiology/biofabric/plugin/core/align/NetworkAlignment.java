@@ -52,7 +52,9 @@ public class NetworkAlignment {
    
   public static final String                // Ordered as in the default link group order
           COVERED_EDGE = "P",               // Covered Edges
-          ORPHAN_GRAPH1 = "B",                     // G1 Edges w/ two aligned nodes (all non-covered G1 Edges)
+          INDUCED_GRAPH1 = "pBp",            // G1 Edges w/ two aligned nodes (all non-covered G1 Edges)
+          HALF_ORPHAN_GRAPH1 = "pBb",       // G1 Edges w/ one aligned node and one unaligned node
+          FULL_ORPHAN_GRAPH1 = "bBb",       // G1 Edges w/ two unaligned nodes
           INDUCED_GRAPH2 = "pRp",           // G2 Edges w/ two aligned nodes (induced)
           HALF_UNALIGNED_GRAPH2 = "pRr",    // G2 Edges w/ one aligned node and one unaligned node
           FULL_UNALIGNED_GRAPH2 = "rRr";    // G2 Edges w/ two unaligned nodes
@@ -303,7 +305,8 @@ public class NetworkAlignment {
 
     NetAlignFabricLinkLocator comp = new NetAlignFabricLinkLocator();
     sortLinks(newLinksG1);
-    
+  
+    Set<NetNode> alignedNodesG1 = new HashSet<NetNode>(smallToMergedID_.values());
     Set<NetNode> alignedNodesG2 = new HashSet<NetNode>(largeToMergedID_.values());
     // contains all aligned nodes; contains() works in O(1)
   
@@ -329,13 +332,23 @@ public class NetworkAlignment {
     }
     lr = new LoopReporter(newLinksG1.size(), 20, monitor_, 0.0, 1.0, "progress.separatingLinksB");
     sortLinks(newLinksG2);
-  
+    
     for (NetLink linkG1 : newLinksG1) {
       
       int index = Collections.binarySearch(newLinksG2, linkG1, comp);
-      
+  
+      NetNode src = linkG1.getSrcNode(), trg = linkG1.getTrgNode();
+  
       if (index < 0) {
-        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), ORPHAN_GRAPH1);
+        boolean containsSRC = alignedNodesG1.contains(src), containsTRG = alignedNodesG1.contains(trg);
+        if (containsSRC && containsTRG) {
+          addMergedLink(src, trg, INDUCED_GRAPH1);
+        } else if (containsSRC || containsTRG) {
+          addMergedLink(src, trg, HALF_ORPHAN_GRAPH1);
+        } else {
+          addMergedLink(src, trg, FULL_ORPHAN_GRAPH1);
+        }
+//        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), INDUCED_GRAPH1);
       }
       lr.report();
     }
@@ -416,6 +429,21 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
+   **
+   */
+  
+  public static class NodeColorMap {
+    
+    private Map<NetNode, NodeGroupMap.EdgeType> map;
+    
+    public NodeGroupMap.EdgeType getType(NetNode node) {
+      return null;
+    }
+    
+  }
+  
+  /****************************************************************************
+   **
    ** All unaligned edges plus all of their endpoint nodes' edges
    */
   
@@ -433,7 +461,7 @@ public class NetworkAlignment {
       
       Set<NetNode> blueNodesG1 = new TreeSet<NetNode>();
       for (NetLink link : mergedLinks) { // find the nodes of interest
-        if (link.getRelation().equals(ORPHAN_GRAPH1)) {
+        if (link.getRelation().equals(INDUCED_GRAPH1)) {
           blueNodesG1.add(link.getSrcNode()); // it's a set - so with shadows no duplicates
           blueNodesG1.add(link.getTrgNode());
         }

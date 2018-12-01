@@ -91,10 +91,10 @@ public class NetworkAlignmentLayout extends NodeLayout {
     
     List<NetNode> targetIDs;
     
-    switch (nabd.view) {
+    switch (nabd.view) {      // needs to be changed
       case GROUP:
-        targetIDs = bfsNodeGroupLayout(rbd, monitor);
-        break;
+//        targetIDs = bfsNodeGroupLayout(rbd, monitor);
+//        break;
       case ORPHAN:
         targetIDs = (new DefaultLayout()).defaultNodeOrder(rbd.getLinks(), rbd.getSingletonNodes(), null, monitor);
         break;

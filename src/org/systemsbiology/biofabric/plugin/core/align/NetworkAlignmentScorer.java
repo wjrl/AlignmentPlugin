@@ -282,7 +282,7 @@ public class NetworkAlignmentScorer {
       lr.report();
       if (link.getRelation().equals(NetworkAlignment.COVERED_EDGE)) {
         numCoveredEdge++;
-      } else if (link.getRelation().equals(NetworkAlignment.ORPHAN_GRAPH1)) {
+      } else if (link.getRelation().equals(NetworkAlignment.INDUCED_GRAPH1)) {
         numGraph1++;
       } else if (link.getRelation().equals(NetworkAlignment.INDUCED_GRAPH2)) {
         numInducedGraph2++;
@@ -535,7 +535,7 @@ public class NetworkAlignmentScorer {
 
       Map<String, Integer> relToIndex = new HashMap<String, Integer>();
       relToIndex.put(NetworkAlignment.COVERED_EDGE, NodeGroupMap.PURPLE_EDGES);
-      relToIndex.put(NetworkAlignment.ORPHAN_GRAPH1, NodeGroupMap.BLUE_EDGES);
+      relToIndex.put(NetworkAlignment.INDUCED_GRAPH1, NodeGroupMap.BLUE_EDGES);
       relToIndex.put(NetworkAlignment.INDUCED_GRAPH2, NodeGroupMap.RED_EDGES);
       relToIndex.put(NetworkAlignment.HALF_UNALIGNED_GRAPH2, NodeGroupMap.ORANGE_EDGES);
       relToIndex.put(NetworkAlignment.FULL_UNALIGNED_GRAPH2, NodeGroupMap.YELLOW_EDGES);
