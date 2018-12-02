@@ -45,18 +45,20 @@ import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
  **
  ** LG = LINK GROUP
  **
- ** FIRST LG  = PURPLE EDGES           // COVERERED EDGE
- ** SECOND LG = BLUE EDGES             // ORPHAN_GRAPH1
- ** THIRD LG  = RED EDGES              // INDUCED_GRAPH2
- ** FOURTH LG = ORANGE EDGES           // HALF_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
- ** FIFTH LG  = YELLOW EDGES           // FULL_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
+ ** FIRST LG   = PURPLE EDGES           // COVERERED EDGE
+ ** SECOND LG  = BLUE EDGES             // INDUCED_GRAPH1
+ ** THIRD LG   = CYAN EDGES             // HALF_ORPHAN_GRAPH1       (TECHNICALLY BLUE EDGES)
+ ** FOURTH LG  = GREEN EDGES            // FULL_ORPHAN_GRAPH1       (TECHNICALLY BLUE EDGES)
+ ** FIFTH LG   = RED EDGES              // INDUCED_GRAPH2
+ ** SIXTH LG   = ORANGE EDGES           // HALF_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
+ ** SEVENTH LG = YELLOW EDGES           // FULL_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
  **
  ** PURPLE NODE =  ALIGNED NODE
- ** RED NODE    =  UNALINGED NODE
+ ** BLUE NODE   =  ORPHAN (UNALIGNED) BLUE NODE
+ ** RED NODE    =  UNALIGNED NODE
  **
  **
- ** WE HAVE 18 DISTINCT CLASSES (NODE GROUPS) FOR EACH ALIGNED AND UNALIGNED NODE
- ** TECHNICALLY 20 INCLUDING THE SINGLETON ALIGNED AND SINGLETON UNALIGNED NODES
+ ** WE HAVE 40 DISTINCT CLASSES (NODE GROUPS) FOR EACH ALIGNED AND UNALIGNED NODE
  **
  */
 
@@ -64,26 +66,9 @@ public class NodeGroupMap {
   
   ////////////////////////////////////////////////////////////////////////////
   //
-  // PRIVATE INSTANCE MEMBERS
+  // PUBLIC MEMBERS
   //
   ////////////////////////////////////////////////////////////////////////////
-  
-  private final PerfectNGMode mode_;
-  private Set<NetLink> links_;
-  private Set<NetNode> loners_;
-  private Map<NetNode, Boolean> mergedToCorrectNC_, isAlignedNode_;
-  
-  private Map<NetNode, Set<NetLink>> nodeToLinks_;
-  private Map<NetNode, Set<NetNode>> nodeToNeighbors_;
-  
-  private Map<GroupID, Integer> groupIDtoIndex_;
-  private Map<Integer, GroupID> indexToGroupID_;
-  private Map<GroupID, String> groupIDtoColor_;
-  private final int numGroups_;
-  
-  private Map<String, Double> nodeGroupRatios_, linkGroupRatios_;
-  private JaccardSimilarityFunc funcJS_;
-  private BTProgressMonitor monitor_;
   
   public static final int
           PURPLE_EDGES = 0,
@@ -93,6 +78,13 @@ public class NodeGroupMap {
           RED_EDGES = 4,
           ORANGE_EDGES = 5,
           YELLOW_EDGES = 6;
+  
+  public static final EdgeType[] linkGroups = {EdgeType.COVERED,
+          EdgeType.INDUCED_GRAPH1, EdgeType.HALF_ORPHAN_GRAPH1, EdgeType.FULL_ORPHAN_GRAPH1,
+          EdgeType.INDUCED_GRAPH2, EdgeType.HALF_UNALIGNED_GRAPH2, EdgeType.FULL_UNALIGNED_GRAPH2
+  };
+  
+  public static final int NUMBER_LINK_GROUPS = linkGroups.length;
   
   public enum EdgeType {
     COVERED("P", 0),
@@ -109,11 +101,44 @@ public class NodeGroupMap {
     
   }
   
-  public static final int NUMBER_LINK_GROUPS = 7;   // 0..6
+  public enum NodeColor {
+    PURPLE("P"), BLUE("B"), RED("R");
+    
+    public final String tag;
+    
+    NodeColor(String tag) {
+      this.tag = tag;
+    }
+    
+  }
   
   public enum PerfectNGMode {
     NONE, NODE_CORRECTNESS, JACCARD_SIMILARITY
   }
+  
+  ////////////////////////////////////////////////////////////////////////////
+  //
+  // PRIVATE INSTANCE MEMBERS
+  //
+  ////////////////////////////////////////////////////////////////////////////
+  
+  private final PerfectNGMode mode_;
+  private Set<NetLink> links_;
+  private Set<NetNode> loners_;
+  private Map<NetNode, Boolean> mergedToCorrectNC_, isAlignedNode_;
+  private NetworkAlignment.NodeColorMap nodeColorMap_;
+  
+  private Map<NetNode, Set<NetLink>> nodeToLinks_;
+  private Map<NetNode, Set<NetNode>> nodeToNeighbors_;
+  
+  private Map<GroupID, Integer> groupIDtoIndex_;
+  private Map<Integer, GroupID> indexToGroupID_;
+  private Map<GroupID, String> groupIDtoColor_;
+  private final int numGroups_;
+  
+  private Map<String, Double> nodeGroupRatios_, linkGroupRatios_;
+  private JaccardSimilarityFunc funcJS_;
+  private BTProgressMonitor monitor_;
   
   ////////////////////////////////////////////////////////////////////////////
   //
@@ -131,6 +156,7 @@ public class NodeGroupMap {
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).isAlignedNode,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).nodeColorMap,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
          nodeGroupOrder, 
@@ -142,6 +168,7 @@ public class NodeGroupMap {
                       Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
                       ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                       Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
+                      NetworkAlignment.NodeColorMap nodeColorMap,
                       PerfectNGMode mode, final Double jaccSimThreshold,
                       String[] nodeGroupOrder, String[][] colorMap,
                       BTProgressMonitor monitor) throws AsynchExitRequestException {
@@ -149,6 +176,7 @@ public class NodeGroupMap {
     this.loners_ = loneNodeIDs;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
     this.isAlignedNode_ = isAlignedNode;
+    this.nodeColorMap_ = nodeColorMap;
     this.numGroups_ = nodeGroupOrder.length;
     this.mode_ = mode;
     if (mode == PerfectNGMode.JACCARD_SIMILARITY) {
@@ -236,41 +264,60 @@ public class NodeGroupMap {
     // See which types of link groups the node's links are in
     //
     
-    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
-            NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
-    boolean[] inLG = new boolean[NUMBER_LINK_GROUPS];
+//    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
+//            NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
+    boolean[] inLG = new boolean[linkGroups.length];
+    
     
     for (NetLink link : nodeToLinks_.get(node)) {
       for (int rel = 0; rel < inLG.length; rel++) {
-        if (link.getRelation().equals(possibleRels[rel])) {
+//        if (link.getRelation().equals(possibleRels[rel])) {
+        if (link.getRelation().equals(linkGroups[rel].tag)) {
           inLG[rel] = true;
         }
       }
     }
-    
+  
     List<String> tags = new ArrayList<String>();
-    if (inLG[PURPLE_EDGES]) {
-      tags.add("P");
+    
+    for (EdgeType type : linkGroups) {
+      if (inLG[type.index]) {
+        tags.add(type.tag);
+      }
     }
-    if (inLG[BLUE_EDGES]) {
-      tags.add("B");
-    }
-    if (inLG[RED_EDGES]) {
-      tags.add("pRp");
-    }
-    if (inLG[ORANGE_EDGES]) {
-      tags.add("pRr");
-    }
-    if (inLG[YELLOW_EDGES]) {
-      tags.add("rRr");
-    }
-    if (tags.isEmpty()) { // singleton
+    
+    if (tags.isEmpty()) { // singletons
       tags.add("0");
     }
     
+//    if (inLG[PURPLE_EDGES]) {
+//      tags.add("P");
+//    }
+//    if (inLG[BLUE_EDGES]) {
+//      tags.add("B");
+//    }
+//    if (inLG[RED_EDGES]) {
+//      tags.add("pRp");
+//    }
+//    if (inLG[ORANGE_EDGES]) {
+//      tags.add("pRr");
+//    }
+//    if (inLG[YELLOW_EDGES]) {
+//      tags.add("rRr");
+//    }
+//    if (tags.isEmpty()) { // singleton
+//      tags.add("0");
+//    }
+    
     StringBuilder sb = new StringBuilder();
     sb.append("(");
-    sb.append(isAlignedNode_.get(node) ? "P" : "R");  // aligned/unaligned node
+//    sb.append(isAlignedNode_.get(node) ? "P" : "R");  // aligned/unaligned node
+    sb.append(nodeColorMap_.getColor(node).tag);
+//    if (isAlignedNode_.get(node)) {
+//      sb.append("P");
+//    } else {
+//      sb.append("X");   // just for testing
+//    }
     sb.append(":");
   
     for (int i = 0; i < tags.size(); i++) {
@@ -337,13 +384,16 @@ public class NodeGroupMap {
   
   private void calcLGRatios() throws AsynchExitRequestException {
     
-    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
-            NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
+//    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
+//            NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
     double size = links_.size();
     
     Map<String, Integer> counts = new HashMap<String, Integer>(); // initial vals
-    for (String rel : rels) {
-      counts.put(rel, 0);
+//    for (String rel : rels) {
+//      counts.put(rel, 0);
+//    }
+    for (EdgeType type : linkGroups) {
+      counts.put(type.tag, 0);
     }
     
     LoopReporter lr = new LoopReporter(links_.size(), 20, monitor_, 0.0, 1.0, "progress.calculatingLinkRatios");

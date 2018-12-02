@@ -26,13 +26,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-
 import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
 import org.systemsbiology.biofabric.api.util.NID;
@@ -40,6 +40,7 @@ import org.systemsbiology.biofabric.api.util.UniqueLabeller;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
+import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /****************************************************************************
@@ -95,6 +96,7 @@ public class NetworkAlignment {
   private ArrayList<NetLink> mergedLinks_;
   private Set<NetNode> mergedLoners_;
   private Map<NetNode, Boolean> mergedToCorrectNC_, isAlignedNode_;
+  private NodeColorMap nodeColorMap_;
   
   private enum Graph {SMALL, LARGE}
   
@@ -109,7 +111,7 @@ public class NetworkAlignment {
                           Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2_,
                           ArrayList<NetLink> linksG1, HashSet<NetNode> lonersG1,
                           ArrayList<NetLink> linksG2, HashSet<NetNode> lonersG2,
-                          Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
+                          Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode, NodeColorMap nodeColorMap,
                           NetworkAlignmentBuildData.ViewType outType, UniqueLabeller idGen, BTProgressMonitor monitor) {
     
     this.mapG1toG2_ = mapG1toG2;
@@ -126,6 +128,7 @@ public class NetworkAlignment {
     this.mergedLoners_ = mergedLoneNodeIDs;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
     this.isAlignedNode_ = isAlignedNode;
+    this.nodeColorMap_ = nodeColorMap;
   }
   
   /****************************************************************************
@@ -168,6 +171,8 @@ public class NetworkAlignment {
     //
     
     createIsAlignedMap();
+    
+    createNodeColorMap(newLinksG1, newLonersG1, newLinksG2, newLonersG2);
     
     //
     // Orphan Edges: All unaligned edges; plus all of their endpoint nodes' edges
@@ -317,15 +322,15 @@ public class NetworkAlignment {
       NetNode src = linkG2.getSrcNode(), trg = linkG2.getTrgNode();
       
       if (index >= 0) {
-        addMergedLink(src, trg, COVERED_EDGE);
+        addMergedLink(src, trg, NodeGroupMap.EdgeType.COVERED.tag);
       } else {
         boolean containsSRC = alignedNodesG2.contains(src), containsTRG = alignedNodesG2.contains(trg);
         if (containsSRC && containsTRG) {
-          addMergedLink(src, trg, INDUCED_GRAPH2);
+          addMergedLink(src, trg, NodeGroupMap.EdgeType.INDUCED_GRAPH2.tag);
         } else if (containsSRC || containsTRG) {
-          addMergedLink(src, trg, HALF_UNALIGNED_GRAPH2);
+          addMergedLink(src, trg, NodeGroupMap.EdgeType.HALF_UNALIGNED_GRAPH2.tag);
         } else {
-          addMergedLink(src, trg, FULL_UNALIGNED_GRAPH2);
+          addMergedLink(src, trg, NodeGroupMap.EdgeType.FULL_UNALIGNED_GRAPH2.tag);
         }
       }
       lr.report();
@@ -342,11 +347,11 @@ public class NetworkAlignment {
       if (index < 0) {
         boolean containsSRC = alignedNodesG1.contains(src), containsTRG = alignedNodesG1.contains(trg);
         if (containsSRC && containsTRG) {
-          addMergedLink(src, trg, INDUCED_GRAPH1);
+          addMergedLink(src, trg, NodeGroupMap.EdgeType.INDUCED_GRAPH1.tag);
         } else if (containsSRC || containsTRG) {
-          addMergedLink(src, trg, HALF_ORPHAN_GRAPH1);
+          addMergedLink(src, trg, NodeGroupMap.EdgeType.HALF_ORPHAN_GRAPH1.tag);
         } else {
-          addMergedLink(src, trg, FULL_ORPHAN_GRAPH1);
+          addMergedLink(src, trg, NodeGroupMap.EdgeType.FULL_ORPHAN_GRAPH1.tag);
         }
 //        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), INDUCED_GRAPH1);
       }
@@ -404,6 +409,39 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
+   ** POST processing: Create NodeColorMap map
+   */
+  
+  private void createNodeColorMap(List<NetLink> newLinksG1, Set<NetNode> newLonersG1,
+                                  List<NetLink> newLinksG2, Set<NetNode> newLonersG2) throws AsynchExitRequestException {
+    
+    Set<NetNode> nodesG1 = (new BuildExtractorImpl()).extractNodes(newLinksG1, newLonersG1, monitor_);
+    Set<NetNode> nodesG2 = (new BuildExtractorImpl()).extractNodes(newLinksG2, newLonersG2, monitor_);
+  
+    Set<NetNode> alignedNodes = mergedIDToSmall_.keySet();
+    Map<NetNode, NodeGroupMap.NodeColor> map = new HashMap<NetNode, NodeGroupMap.NodeColor>();
+    
+    for (NetNode node : nodesG1) {
+      if (alignedNodes.contains(node)) {
+        map.put(node, NodeGroupMap.NodeColor.PURPLE);
+      } else {
+        map.put(node, NodeGroupMap.NodeColor.BLUE);
+      }
+    }
+    for (NetNode node : nodesG2) {
+      if (alignedNodes.contains(node)) {
+        // essentially re-assigns purple nodes for no reason
+        map.put(node, NodeGroupMap.NodeColor.PURPLE);
+      } else {
+        map.put(node, NodeGroupMap.NodeColor.RED);
+      }
+    }
+    nodeColorMap_.setMap(map);
+    return;
+  }
+  
+  /****************************************************************************
+   **
    ** Sort list of FabricLinks
    */
   
@@ -434,10 +472,16 @@ public class NetworkAlignment {
   
   public static class NodeColorMap {
     
-    private Map<NetNode, NodeGroupMap.EdgeType> map;
+    private Map<NetNode, NodeGroupMap.NodeColor> map;
     
-    public NodeGroupMap.EdgeType getType(NetNode node) {
-      return null;
+    public NodeColorMap() {}
+  
+    public void setMap(Map<NetNode, NodeGroupMap.NodeColor> map) {
+      this.map = map;
+    }
+  
+    public NodeGroupMap.NodeColor getColor(NetNode node) {
+      return (map.get(node));
     }
     
   }

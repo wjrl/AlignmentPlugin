@@ -93,8 +93,8 @@ public class NetworkAlignmentLayout extends NodeLayout {
     
     switch (nabd.view) {      // needs to be changed
       case GROUP:
-//        targetIDs = bfsNodeGroupLayout(rbd, monitor);
-//        break;
+        targetIDs = bfsNodeGroupLayout(rbd, monitor);
+        break;
       case ORPHAN:
         targetIDs = (new DefaultLayout()).defaultNodeOrder(rbd.getLinks(), rbd.getSingletonNodes(), null, monitor);
         break;
@@ -379,25 +379,68 @@ public class NetworkAlignmentLayout extends NodeLayout {
   public static final String[] defaultNGOrderWithoutCorrect = {
           "(P:0)",
           "(P:P)",
-          "(P:B)",
+          "(P:pBp)",
+          "(P:pBb)",
+          "(P:pBp/pBb)",
           "(P:pRp)",
-          "(P:P/B)",
+          "(P:P/pBp)",
+          "(P:P/pBb)",
+          "(P:P/pBp/pBb)",
           "(P:P/pRp)",
-          "(P:B/pRp)",
-          "(P:P/B/pRp)",
+          "(P:pBp/pRp)",
+          "(P:pBb/pRp)",
+          "(P:pBp/pBb/pRp)",
+          "(P:P/pBp/pRp)",
+          "(P:P/pBb/pRp)",
+          "(P:P/pBp/pBb/pRp)",
           "(P:pRr)",
           "(P:P/pRr)",
-          "(P:B/pRr)",
+          "(P:pBp/pRr)",
+          "(P:pBb/pRr)",
+          "(P:pBp/pBb/pRr)",
           "(P:pRp/pRr)",
-          "(P:P/B/pRr)",
+          "(P:P/pBp/pRr)",
+          "(P:P/pBb/pRr)",
+          "(P:P/pBp/pBb/pRr)",
           "(P:P/pRp/pRr)",
-          "(P:B/pRp/pRr)",
-          "(P:P/B/pRp/pRr)",
+          "(P:pBp/pRp/pRr)",
+          "(P:pBb/pRp/pRr)",
+          "(P:pBp/pBb/pRp/pRr)",
+          "(P:P/pBp/pRp/pRr)",
+          "(P:P/pBb/pRp/pRr)",
+          "(P:P/pBp/pBb/pRp/pRr)",
+          "(B:pBb)",
+          "(B:bBb)",
+          "(B:pBb/bBb)",
+          "(B:0)",
           "(R:pRr)",
           "(R:rRr)",
           "(R:pRr/rRr)",
           "(R:0)"
   };
+  
+//  public static final String[] defaultNGOrderWithoutCorrect = {
+//          "(P:0)",
+//          "(P:P)",
+//          "(P:B)",
+//          "(P:pRp)",
+//          "(P:P/B)",
+//          "(P:P/pRp)",
+//          "(P:B/pRp)",
+//          "(P:P/B/pRp)",
+//          "(P:pRr)",
+//          "(P:P/pRr)",
+//          "(P:B/pRr)",
+//          "(P:pRp/pRr)",
+//          "(P:P/B/pRr)",
+//          "(P:P/pRp/pRr)",
+//          "(P:B/pRp/pRr)",
+//          "(P:P/B/pRp/pRr)",
+//          "(R:pRr)",
+//          "(R:rRr)",
+//          "(R:pRr/rRr)",
+//          "(R:0)"
+//  };
   
   public static final String[] defaultNGOrderWithCorrect = {
           "(P:0/1)",
@@ -437,7 +480,7 @@ public class NetworkAlignmentLayout extends NodeLayout {
           "(R:pRr/rRr/0)",
           "(R:0/0)"
   };
-  
+
   public static final String[][] ngAnnotColorsWithoutCorrect = {
           {"(P:0)",           "GrayBlue"},
           {"(P:P)",           "Orange"},        // FIRST THREE LINK GROUPS
@@ -460,7 +503,7 @@ public class NetworkAlignmentLayout extends NodeLayout {
           {"(R:pRr/rRr)",     "Yellow"},
           {"(R:0)",           "Green"}
   };
-  
+
   public static final String[][] ngAnnotcolorsWithCorrect = {
           {"(P:0/1)",          "GrayBlue"},
           {"(P:0/0)",          "DarkGrayBlue"},

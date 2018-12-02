@@ -50,6 +50,7 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
   public Set<NetNode> allLargerNodes;
   public Set<NetNode> allSmallerNodes;
   public Map<NetNode, Boolean> mergedToCorrectNC, isAlignedNode;
+  public NetworkAlignment.NodeColorMap nodeColorMap;
   public NetworkAlignmentPlugIn.NetAlignStats netAlignStats;
   public ViewType view;
   public Map<NetNode, NetNode> mapG1toG2;
@@ -62,6 +63,7 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
                                    Set<NetNode> allSmallerNodes,                                 
                                    Map<NetNode, Boolean> mergedToCorrectNC,
                                    Map<NetNode, Boolean> isAlignedNode,
+                                   NetworkAlignment.NodeColorMap nodeColorMap,
                                    NetworkAlignmentPlugIn.NetAlignStats netAlignStats,
                                    ViewType view,
                                    Map<NetNode, NetNode> mapG1toG2,
@@ -76,6 +78,7 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
     this.lonersLarge = lonersLarge;
     this.mergedToCorrectNC = mergedToCorrectNC;
     this.isAlignedNode = isAlignedNode;
+    this.nodeColorMap = nodeColorMap;
     this.netAlignStats = netAlignStats;
     this.mapG1toG2 = mapG1toG2;
     this.perfectG1toG2 = perfectG1toG2;

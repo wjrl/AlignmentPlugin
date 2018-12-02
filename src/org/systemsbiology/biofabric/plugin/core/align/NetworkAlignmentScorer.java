@@ -99,6 +99,7 @@ public class NetworkAlignmentScorer {
   public NetworkAlignmentScorer(Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
                                 Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
                                 Map<NetNode, Boolean> isAlignedNodePerfect,
+//                                NetworkAlignment.NodeColorMap nodeColorMap, NetworkAlignment.NodeColorMap nodeColorMapPerfect,
                                 Set<NetLink> linksPerfect, Set<NetNode> loneNodeIDsPerfect,
                                 ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
                                 ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
@@ -123,14 +124,14 @@ public class NetworkAlignmentScorer {
     this.lonersLarge_ = lonersLarge;
     this.mapG1toG2_ = mapG1toG2;
     this.perfectG1toG2_ = perfectG1toG2;
-    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
-            mergedToCorrectNC, isAlignedNode, NodeGroupMap.PerfectNGMode.NONE, null,
-            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-    if (mergedToCorrectNC != null) {
-      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,
-              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, NodeGroupMap.PerfectNGMode.NONE, null,
-              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-    }
+//    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
+//            mergedToCorrectNC, isAlignedNode, nodeColorMap, NodeGroupMap.PerfectNGMode.NONE, null,
+//            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
+//    if (mergedToCorrectNC != null) {
+//      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,          // investigate parameters
+//              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, nodeColorMapPerfect, NodeGroupMap.PerfectNGMode.NONE, null,
+//              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
+//    }
     removeDuplicateAndShadow();
     generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_);
     if (mergedToCorrectNC != null) {

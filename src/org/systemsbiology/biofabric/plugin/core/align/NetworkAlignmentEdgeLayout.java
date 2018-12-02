@@ -137,30 +137,36 @@ public class NetworkAlignmentEdgeLayout extends DefaultEdgeLayout {
     
     private int getIndex(String rel) {
       
-      if(rel.equals(NetworkAlignment.COVERED_EDGE)) {
-        return NodeGroupMap.PURPLE_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.INDUCED_GRAPH1)) {
-        return NodeGroupMap.BLUE_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.HALF_ORPHAN_GRAPH1)) {
-        return NodeGroupMap.CYAN_EDGES;
-  
-      }else if (rel.equals(NetworkAlignment.FULL_ORPHAN_GRAPH1)) {
-        return NodeGroupMap.GREEN_EDGES;
-  
-      } else if (rel.equals(NetworkAlignment.INDUCED_GRAPH2)) {
-        return NodeGroupMap.RED_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.HALF_UNALIGNED_GRAPH2)) {
-        return NodeGroupMap.ORANGE_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.FULL_UNALIGNED_GRAPH2)) {
-        return NodeGroupMap.YELLOW_EDGES;
-        
-      } else {
-        throw new IllegalArgumentException();
+      for (NodeGroupMap.EdgeType type : NodeGroupMap.linkGroups) {
+        if (rel.equals(type.tag)) {
+          return (type.index);
+        }
       }
+      throw (new IllegalArgumentException());
+//      if(rel.equals(NodeGroupMap.EdgeType.COVERED.tag)) {
+//        return NodeGroupMap.EdgeType.COVERED.index;
+//
+//      } else if (rel.equals(NodeGroupMap.EdgeType.INDUCED_GRAPH1.tag)) {
+//        return NodeGroupMap.EdgeType.INDUCED_GRAPH1.index;
+//
+//      } else if (rel.equals(NodeGroupMap.EdgeType.HALF_ORPHAN_GRAPH1.tag)) {
+//        return NodeGroupMap.EdgeType.HALF_ORPHAN_GRAPH1.index;
+//
+//      }else if (rel.equals(NodeGroupMap.EdgeType.FULL_ORPHAN_GRAPH1.tag)) {
+//        return NodeGroupMap.EdgeType.FULL_ORPHAN_GRAPH1.index;
+//
+//      } else if (rel.equals(NodeGroupMap.EdgeType.INDUCED_GRAPH2.tag)) {
+//        return NodeGroupMap.RED_EDGES;
+//
+//      } else if (rel.equals(NodeGroupMap.EdgeType.HALF_UNALIGNED_GRAPH2.tag)) {
+//        return NodeGroupMap.ORANGE_EDGES;
+//
+//      } else if (rel.equals(NodeGroupMap.EdgeType.FULL_UNALIGNED_GRAPH2.tag)) {
+//        return NodeGroupMap.YELLOW_EDGES;
+//
+//      } else {
+//        throw new IllegalArgumentException();
+//      }
     }
     
   }

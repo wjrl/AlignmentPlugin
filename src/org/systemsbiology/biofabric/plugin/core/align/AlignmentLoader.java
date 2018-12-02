@@ -119,9 +119,6 @@ public class AlignmentLoader {
 	      boolean existsInG1 = G1nameToNID.containsKey(strNameG1),
 	              existsInG2 = G2nameToNID.containsKey(strNameG2);
       
-          System.out.println(G1nameToNID.keySet());
-          System.out.println(G2nameToNID.keySet());
-	  
 	      if (!existsInG1) {
 	        String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.nodeNotFoundG1"), strNameG1);
 	        throw (new IOException(msg));

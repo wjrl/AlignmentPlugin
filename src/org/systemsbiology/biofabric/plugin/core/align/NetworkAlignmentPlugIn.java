@@ -403,15 +403,15 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     SortedMap<AugRelation, Boolean> relMap = new TreeMap<AugRelation, Boolean>();
     Set<NetLink> reducedLinks = new HashSet<NetLink>();
     Map<NetNode, Boolean> mergedToCorrectNC = null, isAlignedNode = new HashMap<NetNode, Boolean>();
+    NetworkAlignment.NodeColorMap nodeColorMap = new NetworkAlignment.NodeColorMap();
     if (doingPerfectGroup) {
       mergedToCorrectNC = new HashMap<NetNode, Boolean>();
     }
     
     boolean finished = nab.processNetAlign(mergedLinks, mergedLoneNodeIDs, mapG1toG2, perfectG1toG2, mergedToCorrectNC,
-                                           isAlignedNode, linksSmall, lonersSmall, linksLarge, lonersLarge, 
+                                           isAlignedNode, nodeColorMap, linksSmall, lonersSmall, linksLarge, lonersLarge,
                                            relMap, outType, idGen, cacheFile);
   
-    System.out.println(mergedLoneNodeIDs + "   h");
     //
     // Second process the perfect alignment (if given)
     //
@@ -422,6 +422,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     SortedMap<AugRelation, Boolean> relMapPerfect = null;
     Set<NetLink> reducedLinksPerfect = null;
     Map<NetNode, Boolean> isAlignedNodePerfect = null;
+    NetworkAlignment.NodeColorMap nodeColorMapPerfect = null;
     
     if (finished && doingPerfectGroup) {
       //
@@ -435,9 +436,10 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       relMapPerfect = new TreeMap<AugRelation, Boolean>();
       reducedLinksPerfect = new HashSet<NetLink>();
       isAlignedNodePerfect = new HashMap<NetNode, Boolean>();
+      nodeColorMapPerfect = new NetworkAlignment.NodeColorMap();
       
       finished = nab.processNetAlign(mergedLinksPerfect, mergedLoneNodeIDsPerfect, perfectG1toG2, null, null,
-              isAlignedNodePerfect, linksSmall, lonersSmall, linksLarge, lonersLarge, relMapPerfect, 
+              isAlignedNodePerfect, nodeColorMapPerfect, linksSmall, lonersSmall, linksLarge, lonersLarge, relMapPerfect,
               NetworkAlignmentBuildData.ViewType.GROUP, idGen, cacheFile);
     }
   
@@ -485,7 +487,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       }
   
       networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs,
-                               mergedToCorrectNC, isAlignedNode,
+                               mergedToCorrectNC, isAlignedNode, nodeColorMap,
                                mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, pendingNetAlignStats_, outType,
                                nadi.mode, jaccSimThreshold, idGen, nadi.align, cacheFile);
     }
@@ -533,6 +535,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                            Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
                                            Map<NetNode, Boolean> mergedToCorrect, 
                                            Map<NetNode, Boolean> isAlignedNode,
+                                           NetworkAlignment.NodeColorMap nodeColorMap,
                                            Map<NetNode, NetNode> mapG1toG2,
                                            Map<NetNode, NetNode> perfectMap,
                                            ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
@@ -546,7 +549,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     BuildData bd = PluginSupportFactory.getBuildDataForPlugin(idGen, reducedLinks, loneNodeIDs, emptyClustMap, null);
     bd.setLayoutMode(Network.LayoutMode.PER_NETWORK_MODE);
     NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(allLargerNodes, allSmallerNodes, mergedToCorrect,
-                                                                   isAlignedNode, report,
+                                                                   isAlignedNode, nodeColorMap, report,
                                                                    viewType, mapG1toG2, perfectMap, linksLarge, lonersLarge, mode, jaccSimThreshold);
     bd.setPluginBuildData(nabd);
   
@@ -1006,6 +1009,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                    Map<NetNode, NetNode> perfectG1toG2,
                                    Map<NetNode, Boolean> mergedToCorrect,
                                    Map<NetNode, Boolean> isAlignedNode,
+                                   NetworkAlignment.NodeColorMap nodeColorMap,
                                    ArrayList<NetLink> linksG1, HashSet<NetNode> lonersG1,
                                    ArrayList<NetLink> linksG2, HashSet<NetNode> lonersG2,
                                    SortedMap<AugRelation, Boolean> relMap,
@@ -1015,7 +1019,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       try {    	
       	BFWorker bfw = PluginSupportFactory.getBFWorker(this, topWindow_, bwcm_, "fileLoad.waitTitle", "fileLoad.wait", true, rMan_);
         NetworkAlignmentRunner runner = new NetworkAlignmentRunner(mergedLinks, mergedLoneNodeIDs, mapG1toG2, perfectG1toG2,
-                                                                   mergedToCorrect, isAlignedNode, linksG1, lonersG1, linksG2, 
+                                                                   mergedToCorrect, isAlignedNode, nodeColorMap, linksG1, lonersG1, linksG2,
                                                                    lonersG2, relMap, outType, idGen, bfw);
         bfw.setCore(runner);
         bfw.launchWorker();
@@ -1055,6 +1059,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     private Set<NetNode> mergedLoneNodeIDs_;
     private Map<NetNode, NetNode> mapG1toG2_, perfectG1toG2_;
     private Map<NetNode, Boolean> mergedToCorrect_, isAlignedNode_;
+    private NetworkAlignment.NodeColorMap nodeColorMap_;
     private ArrayList<NetLink> linksG1_, linksG2_;
     private HashSet<NetNode> lonersG1_, lonersG2_;
     private SortedMap<AugRelation, Boolean> relMap_;
@@ -1067,6 +1072,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                   Map<NetNode, NetNode> perfectG1toG2,
                                   Map<NetNode, Boolean> mergedToCorrect,
                                   Map<NetNode, Boolean> isAlignedNode,
+                                  NetworkAlignment.NodeColorMap nodeColorMap,
                                   ArrayList<NetLink> linksG1, HashSet<NetNode> lonersG1,
                                   ArrayList<NetLink> linksG2, HashSet<NetNode> lonersG2,
                                   SortedMap<AugRelation, Boolean> relMap,
@@ -1080,6 +1086,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       this.perfectG1toG2_ = perfectG1toG2;
       this.mergedToCorrect_ = mergedToCorrect;
       this.isAlignedNode_ = isAlignedNode;
+      this.nodeColorMap_ = nodeColorMap;
       this.linksG1_ = linksG1;
       this.lonersG1_ = lonersG1;
       this.linksG2_ = linksG2;
@@ -1097,7 +1104,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       
     	BTProgressMonitor monitor = bfwk_.getMonitor();
       NetworkAlignment netAlign = new NetworkAlignment(mergedLinks_, mergedLoneNodeIDs_, mapG1toG2_, perfectG1toG2_,
-              linksG1_, lonersG1_, linksG2_, lonersG2_, mergedToCorrect_, isAlignedNode_, outType_, idGen_, monitor);
+              linksG1_, lonersG1_, linksG2_, lonersG2_, mergedToCorrect_, isAlignedNode_, nodeColorMap_, outType_, idGen_, monitor);
       
       netAlign.mergeNetworks();
       BuildExtractor bex = PluginSupportFactory.getBuildExtractor();
