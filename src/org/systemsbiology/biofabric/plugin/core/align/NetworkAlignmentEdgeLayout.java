@@ -132,41 +132,17 @@ public class NetworkAlignmentEdgeLayout extends DefaultEdgeLayout {
     
     /***************************************************************************
      **
-     ** Create an integer index to enforce the default link group order
+     ** Get index for default Link Group order
      */
     
     private int getIndex(String rel) {
       
-      for (NodeGroupMap.EdgeType type : NodeGroupMap.linkGroups) {
+      for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
         if (rel.equals(type.tag)) {
           return (type.index);
         }
       }
       throw (new IllegalArgumentException());
-//      if(rel.equals(NodeGroupMap.EdgeType.COVERED.tag)) {
-//        return NodeGroupMap.EdgeType.COVERED.index;
-//
-//      } else if (rel.equals(NodeGroupMap.EdgeType.INDUCED_GRAPH1.tag)) {
-//        return NodeGroupMap.EdgeType.INDUCED_GRAPH1.index;
-//
-//      } else if (rel.equals(NodeGroupMap.EdgeType.HALF_ORPHAN_GRAPH1.tag)) {
-//        return NodeGroupMap.EdgeType.HALF_ORPHAN_GRAPH1.index;
-//
-//      }else if (rel.equals(NodeGroupMap.EdgeType.FULL_ORPHAN_GRAPH1.tag)) {
-//        return NodeGroupMap.EdgeType.FULL_ORPHAN_GRAPH1.index;
-//
-//      } else if (rel.equals(NodeGroupMap.EdgeType.INDUCED_GRAPH2.tag)) {
-//        return NodeGroupMap.RED_EDGES;
-//
-//      } else if (rel.equals(NodeGroupMap.EdgeType.HALF_UNALIGNED_GRAPH2.tag)) {
-//        return NodeGroupMap.ORANGE_EDGES;
-//
-//      } else if (rel.equals(NodeGroupMap.EdgeType.FULL_UNALIGNED_GRAPH2.tag)) {
-//        return NodeGroupMap.YELLOW_EDGES;
-//
-//      } else {
-//        throw new IllegalArgumentException();
-//      }
     }
     
   }

@@ -91,7 +91,7 @@ public class NetworkAlignmentLayout extends NodeLayout {
     
     List<NetNode> targetIDs;
     
-    switch (nabd.view) {      // needs to be changed
+    switch (nabd.view) {
       case GROUP:
         targetIDs = bfsNodeGroupLayout(rbd, monitor);
         break;
@@ -418,29 +418,6 @@ public class NetworkAlignmentLayout extends NodeLayout {
           "(R:pRr/rRr)",
           "(R:0)"
   };
-  
-//  public static final String[] defaultNGOrderWithoutCorrect = {
-//          "(P:0)",
-//          "(P:P)",
-//          "(P:B)",
-//          "(P:pRp)",
-//          "(P:P/B)",
-//          "(P:P/pRp)",
-//          "(P:B/pRp)",
-//          "(P:P/B/pRp)",
-//          "(P:pRr)",
-//          "(P:P/pRr)",
-//          "(P:B/pRr)",
-//          "(P:pRp/pRr)",
-//          "(P:P/B/pRr)",
-//          "(P:P/pRp/pRr)",
-//          "(P:B/pRp/pRr)",
-//          "(P:P/B/pRp/pRr)",
-//          "(R:pRr)",
-//          "(R:rRr)",
-//          "(R:pRr/rRr)",
-//          "(R:0)"
-//  };
   
   public static final String[] defaultNGOrderWithCorrect = {
           "(P:0/1)",

@@ -70,48 +70,6 @@ public class NodeGroupMap {
   //
   ////////////////////////////////////////////////////////////////////////////
   
-  public static final int
-          PURPLE_EDGES = 0,
-          BLUE_EDGES = 1,
-          CYAN_EDGES = 2,
-          GREEN_EDGES = 3,
-          RED_EDGES = 4,
-          ORANGE_EDGES = 5,
-          YELLOW_EDGES = 6;
-  
-  public static final EdgeType[] linkGroups = {EdgeType.COVERED,
-          EdgeType.INDUCED_GRAPH1, EdgeType.HALF_ORPHAN_GRAPH1, EdgeType.FULL_ORPHAN_GRAPH1,
-          EdgeType.INDUCED_GRAPH2, EdgeType.HALF_UNALIGNED_GRAPH2, EdgeType.FULL_UNALIGNED_GRAPH2
-  };
-  
-  public static final int NUMBER_LINK_GROUPS = linkGroups.length;
-  
-  public enum EdgeType {
-    COVERED("P", 0),
-    INDUCED_GRAPH1("pBp", 1), HALF_ORPHAN_GRAPH1("pBb", 2), FULL_ORPHAN_GRAPH1("bBb", 3),
-    INDUCED_GRAPH2("pRp", 4), HALF_UNALIGNED_GRAPH2("pRr", 5), FULL_UNALIGNED_GRAPH2("rRr", 6);
-  
-    public final String tag;
-    public final int index;
-    
-    EdgeType(String tag, int index) {
-      this.tag = tag;
-      this.index = index;
-    }
-    
-  }
-  
-  public enum NodeColor {
-    PURPLE("P"), BLUE("B"), RED("R");
-    
-    public final String tag;
-    
-    NodeColor(String tag) {
-      this.tag = tag;
-    }
-    
-  }
-  
   public enum PerfectNGMode {
     NONE, NODE_CORRECTNESS, JACCARD_SIMILARITY
   }
@@ -125,7 +83,7 @@ public class NodeGroupMap {
   private final PerfectNGMode mode_;
   private Set<NetLink> links_;
   private Set<NetNode> loners_;
-  private Map<NetNode, Boolean> mergedToCorrectNC_, isAlignedNode_;
+  private Map<NetNode, Boolean> mergedToCorrectNC_;
   private NetworkAlignment.NodeColorMap nodeColorMap_;
   
   private Map<NetNode, Set<NetLink>> nodeToLinks_;
@@ -155,7 +113,6 @@ public class NodeGroupMap {
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksLarge, 
     		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
-             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).isAlignedNode,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).nodeColorMap,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
@@ -167,7 +124,7 @@ public class NodeGroupMap {
   public NodeGroupMap(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
                       Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
                       ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                      Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
+                      Map<NetNode, Boolean> mergedToCorrectNC,
                       NetworkAlignment.NodeColorMap nodeColorMap,
                       PerfectNGMode mode, final Double jaccSimThreshold,
                       String[] nodeGroupOrder, String[][] colorMap,
@@ -175,7 +132,6 @@ public class NodeGroupMap {
     this.links_ = allLinks;
     this.loners_ = loneNodeIDs;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
-    this.isAlignedNode_ = isAlignedNode;
     this.nodeColorMap_ = nodeColorMap;
     this.numGroups_ = nodeGroupOrder.length;
     this.mode_ = mode;
@@ -264,15 +220,12 @@ public class NodeGroupMap {
     // See which types of link groups the node's links are in
     //
     
-//    String[] possibleRels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
-//            NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
-    boolean[] inLG = new boolean[linkGroups.length];
+    boolean[] inLG = new boolean[NetworkAlignment.linkGroups.length];
     
     
     for (NetLink link : nodeToLinks_.get(node)) {
       for (int rel = 0; rel < inLG.length; rel++) {
-//        if (link.getRelation().equals(possibleRels[rel])) {
-        if (link.getRelation().equals(linkGroups[rel].tag)) {
+        if (link.getRelation().equals(NetworkAlignment.linkGroups[rel].tag)) {
           inLG[rel] = true;
         }
       }
@@ -280,7 +233,7 @@ public class NodeGroupMap {
   
     List<String> tags = new ArrayList<String>();
     
-    for (EdgeType type : linkGroups) {
+    for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
       if (inLG[type.index]) {
         tags.add(type.tag);
       }
@@ -290,34 +243,9 @@ public class NodeGroupMap {
       tags.add("0");
     }
     
-//    if (inLG[PURPLE_EDGES]) {
-//      tags.add("P");
-//    }
-//    if (inLG[BLUE_EDGES]) {
-//      tags.add("B");
-//    }
-//    if (inLG[RED_EDGES]) {
-//      tags.add("pRp");
-//    }
-//    if (inLG[ORANGE_EDGES]) {
-//      tags.add("pRr");
-//    }
-//    if (inLG[YELLOW_EDGES]) {
-//      tags.add("rRr");
-//    }
-//    if (tags.isEmpty()) { // singleton
-//      tags.add("0");
-//    }
-    
     StringBuilder sb = new StringBuilder();
     sb.append("(");
-//    sb.append(isAlignedNode_.get(node) ? "P" : "R");  // aligned/unaligned node
-    sb.append(nodeColorMap_.getColor(node).tag);
-//    if (isAlignedNode_.get(node)) {
-//      sb.append("P");
-//    } else {
-//      sb.append("X");   // just for testing
-//    }
+    sb.append(nodeColorMap_.getColor(node).tag);  // node color (P,B,R)
     sb.append(":");
   
     for (int i = 0; i < tags.size(); i++) {
@@ -384,15 +312,10 @@ public class NodeGroupMap {
   
   private void calcLGRatios() throws AsynchExitRequestException {
     
-//    String[] rels = {NetworkAlignment.COVERED_EDGE, NetworkAlignment.INDUCED_GRAPH1,
-//            NetworkAlignment.INDUCED_GRAPH2, NetworkAlignment.HALF_UNALIGNED_GRAPH2, NetworkAlignment.FULL_UNALIGNED_GRAPH2};
     double size = links_.size();
     
     Map<String, Integer> counts = new HashMap<String, Integer>(); // initial vals
-//    for (String rel : rels) {
-//      counts.put(rel, 0);
-//    }
-    for (EdgeType type : linkGroups) {
+    for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
       counts.put(type.tag, 0);
     }
     

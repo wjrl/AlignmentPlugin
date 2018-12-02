@@ -81,13 +81,10 @@ public class AlignCycleEdgeLayout extends DefaultEdgeLayout {
                               BTProgressMonitor monitor) throws AsynchExitRequestException {
     
     List<String> groupOrder = new ArrayList<String>();
-
-    groupOrder.add(NetworkAlignment.INDUCED_GRAPH1);
-    groupOrder.add(NetworkAlignment.COVERED_EDGE);
-    groupOrder.add(NetworkAlignment.INDUCED_GRAPH2);
-    groupOrder.add(NetworkAlignment.HALF_UNALIGNED_GRAPH2);
-    groupOrder.add(NetworkAlignment.FULL_UNALIGNED_GRAPH2);
-    rbd.setGroupOrderAndMode(groupOrder, Network.LayoutMode.PER_NODE_MODE, true);  
+    for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
+      groupOrder.add(type.tag);
+    }
+    rbd.setGroupOrderAndMode(groupOrder, Network.LayoutMode.PER_NODE_MODE, true);
     return;
   } 
   
