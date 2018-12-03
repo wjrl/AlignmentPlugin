@@ -76,6 +76,10 @@ public class AlignCycleLayout extends NodeLayout {
   //
   ////////////////////////////////////////////////////////////////////////////
 
+  //
+  // December 2018: Need to investigate how to incorporate blue nodes!
+  //
+  
   /***************************************************************************
   **
   ** Find out if the necessary conditions for this layout are met. For this layout, we either
