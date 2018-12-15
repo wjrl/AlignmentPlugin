@@ -72,12 +72,13 @@ public class NetworkAlignment {
     
   }
   
-  public static final EdgeType[] linkGroups = {EdgeType.COVERED,
+  public static final EdgeType[] LINK_GROUPS = {
+          EdgeType.COVERED,
           EdgeType.INDUCED_GRAPH1, EdgeType.HALF_ORPHAN_GRAPH1, EdgeType.FULL_ORPHAN_GRAPH1,
           EdgeType.INDUCED_GRAPH2, EdgeType.HALF_UNALIGNED_GRAPH2, EdgeType.FULL_UNALIGNED_GRAPH2
   };
   
-  public static final int NUMBER_LINK_GROUPS = linkGroups.length;
+  public static final int NUMBER_LINK_GROUPS = LINK_GROUPS.length;
   
   public enum NodeColor {
     PURPLE("P"), BLUE("B"), RED("R");

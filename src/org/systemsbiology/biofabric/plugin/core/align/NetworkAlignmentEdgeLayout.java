@@ -137,7 +137,7 @@ public class NetworkAlignmentEdgeLayout extends DefaultEdgeLayout {
     
     private int getIndex(String rel) {
       
-      for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
+      for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
         if (rel.equals(type.tag)) {
           return (type.index);
         }

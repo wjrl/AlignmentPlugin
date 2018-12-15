@@ -289,7 +289,7 @@ public class NetworkAlignmentScorer {
       }
     }
     
-    try {
+    try {   // this is wrong with the new NG definitions
       EC = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1);
       S3 = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1 + numInducedGraph2);
       ICS = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph2);
@@ -534,7 +534,7 @@ public class NetworkAlignmentScorer {
     private VectorND getLGVector(NodeGroupMap groupMap) {
 
       Map<String, Integer> relToIndex = new HashMap<String, Integer>();
-      for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
+      for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
         relToIndex.put(type.tag, type.index);
       }
 

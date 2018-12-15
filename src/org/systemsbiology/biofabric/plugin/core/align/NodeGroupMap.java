@@ -220,12 +220,12 @@ public class NodeGroupMap {
     // See which types of link groups the node's links are in
     //
     
-    boolean[] inLG = new boolean[NetworkAlignment.linkGroups.length];
+    boolean[] inLG = new boolean[NetworkAlignment.LINK_GROUPS.length];
     
     
     for (NetLink link : nodeToLinks_.get(node)) {
       for (int rel = 0; rel < inLG.length; rel++) {
-        if (link.getRelation().equals(NetworkAlignment.linkGroups[rel].tag)) {
+        if (link.getRelation().equals(NetworkAlignment.LINK_GROUPS[rel].tag)) {
           inLG[rel] = true;
         }
       }
@@ -233,7 +233,7 @@ public class NodeGroupMap {
   
     List<String> tags = new ArrayList<String>();
     
-    for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
+    for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
       if (inLG[type.index]) {
         tags.add(type.tag);
       }
@@ -315,7 +315,7 @@ public class NodeGroupMap {
     double size = links_.size();
     
     Map<String, Integer> counts = new HashMap<String, Integer>(); // initial vals
-    for (NetworkAlignment.EdgeType type : NetworkAlignment.linkGroups) {
+    for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
       counts.put(type.tag, 0);
     }
     
