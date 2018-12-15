@@ -65,7 +65,7 @@ public class NetworkAlignmentScorer {
   
   private Set<NetLink> linksMain_, linksPerfect_;
   private Set<NetNode> loneNodeIDsMain_, loneNodeIDsPerfect_;
-  private Map<NetNode, Boolean> isAlignedNodeMain_, isAlignedNodePerfect_;
+  private NetworkAlignment.NodeColorMap nodeColorMapMain_, nodeColorMapPerfect_;
   private Map<NetNode, Boolean> mergedToCorrectNC_;
   
   //
@@ -97,8 +97,8 @@ public class NetworkAlignmentScorer {
   ////////////////////////////////////////////////////////////////////////////
   
   public NetworkAlignmentScorer(Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
-                                Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
-                                Map<NetNode, Boolean> isAlignedNodePerfect,
+                                Map<NetNode, Boolean> mergedToCorrectNC,
+                                NetworkAlignment.NodeColorMap nodeColorMap, NetworkAlignment.NodeColorMap nodeColorMapPerfect,
                                 Set<NetLink> linksPerfect, Set<NetNode> loneNodeIDsPerfect,
                                 ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
                                 ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
@@ -107,11 +107,11 @@ public class NetworkAlignmentScorer {
   	rMan_ = rMan;
     this.linksMain_ = new HashSet<NetLink>(reducedLinks);
     this.loneNodeIDsMain_ = new HashSet<NetNode>(loneNodeIDs);
+    this.nodeColorMapMain_ = nodeColorMap;
+    this.nodeColorMapPerfect_ = nodeColorMapPerfect;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
     this.linksPerfect_ = linksPerfect;
     this.loneNodeIDsPerfect_ = loneNodeIDsPerfect;
-    this.isAlignedNodeMain_ = isAlignedNode;
-    this.isAlignedNodePerfect_ = isAlignedNodePerfect;
     this.monitor_ = monitor;
     this.nodeToLinksMain_ = new HashMap<NetNode, Set<NetLink>>();
     this.nodeToNeighborsMain_ = new HashMap<NetNode, Set<NetNode>>();
@@ -123,14 +123,14 @@ public class NetworkAlignmentScorer {
     this.lonersLarge_ = lonersLarge;
     this.mapG1toG2_ = mapG1toG2;
     this.perfectG1toG2_ = perfectG1toG2;
-    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
-            mergedToCorrectNC, isAlignedNode, NodeGroupMap.PerfectNGMode.NONE, null,
-            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-    if (mergedToCorrectNC != null) {
-      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,
-              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, NodeGroupMap.PerfectNGMode.NONE, null,
-              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-    }
+//    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
+//            mergedToCorrectNC, isAlignedNode, nodeColorMap, NodeGroupMap.PerfectNGMode.NONE, null,
+//            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
+//    if (mergedToCorrectNC != null) {
+//      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,          // investigate parameters
+//              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, nodeColorMapPerfect, NodeGroupMap.PerfectNGMode.NONE, null,
+//              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
+//    }
     removeDuplicateAndShadow();
     generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_);
     if (mergedToCorrectNC != null) {
@@ -280,16 +280,16 @@ public class NetworkAlignmentScorer {
     
     for (NetLink link : linksMain_) {
       lr.report();
-      if (link.getRelation().equals(NetworkAlignment.COVERED_EDGE)) {
+      if (link.getRelation().equals(NetworkAlignment.EdgeType.COVERED.tag)) {
         numCoveredEdge++;
-      } else if (link.getRelation().equals(NetworkAlignment.ORPHAN_GRAPH1)) {
+      } else if (link.getRelation().equals(NetworkAlignment.EdgeType.INDUCED_GRAPH1.tag)) {
         numGraph1++;
-      } else if (link.getRelation().equals(NetworkAlignment.INDUCED_GRAPH2)) {
+      } else if (link.getRelation().equals(NetworkAlignment.EdgeType.INDUCED_GRAPH2.tag)) {
         numInducedGraph2++;
       }
     }
     
-    try {
+    try {   // this is wrong with the new NG definitions
       EC = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1);
       S3 = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1 + numInducedGraph2);
       ICS = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph2);
@@ -534,13 +534,11 @@ public class NetworkAlignmentScorer {
     private VectorND getLGVector(NodeGroupMap groupMap) {
 
       Map<String, Integer> relToIndex = new HashMap<String, Integer>();
-      relToIndex.put(NetworkAlignment.COVERED_EDGE, NodeGroupMap.PURPLE_EDGES);
-      relToIndex.put(NetworkAlignment.ORPHAN_GRAPH1, NodeGroupMap.BLUE_EDGES);
-      relToIndex.put(NetworkAlignment.INDUCED_GRAPH2, NodeGroupMap.RED_EDGES);
-      relToIndex.put(NetworkAlignment.HALF_UNALIGNED_GRAPH2, NodeGroupMap.ORANGE_EDGES);
-      relToIndex.put(NetworkAlignment.FULL_UNALIGNED_GRAPH2, NodeGroupMap.YELLOW_EDGES);
-      
-      VectorND vector = new VectorND(NodeGroupMap.NUMBER_LINK_GROUPS);
+      for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
+        relToIndex.put(type.tag, type.index);
+      }
+
+      VectorND vector = new VectorND(NetworkAlignment.LINK_GROUPS.length);
       Map<String, Double> lgRatios = groupMap.getLinkGroupRatios();
       
       for (Map.Entry<String, Double> entry : lgRatios.entrySet()) {

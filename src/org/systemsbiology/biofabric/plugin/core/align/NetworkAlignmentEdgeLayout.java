@@ -132,29 +132,17 @@ public class NetworkAlignmentEdgeLayout extends DefaultEdgeLayout {
     
     /***************************************************************************
      **
-     ** Create an integer index to enforce the default link group order
+     ** Get index for default Link Group order
      */
     
     private int getIndex(String rel) {
       
-      if(rel.equals(NetworkAlignment.COVERED_EDGE)) {
-        return NodeGroupMap.PURPLE_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.ORPHAN_GRAPH1)) {
-        return NodeGroupMap.BLUE_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.INDUCED_GRAPH2)) {
-        return NodeGroupMap.RED_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.HALF_UNALIGNED_GRAPH2)) {
-        return NodeGroupMap.ORANGE_EDGES;
-        
-      } else if (rel.equals(NetworkAlignment.FULL_UNALIGNED_GRAPH2)) {
-        return NodeGroupMap.YELLOW_EDGES;
-        
-      } else {
-        throw new IllegalArgumentException();
+      for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
+        if (rel.equals(type.tag)) {
+          return (type.index);
+        }
       }
+      throw (new IllegalArgumentException());
     }
     
   }

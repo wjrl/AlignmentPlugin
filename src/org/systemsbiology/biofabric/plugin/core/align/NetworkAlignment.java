@@ -26,13 +26,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-
 import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
 import org.systemsbiology.biofabric.api.util.NID;
@@ -40,6 +40,7 @@ import org.systemsbiology.biofabric.api.util.UniqueLabeller;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
+import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /****************************************************************************
@@ -49,15 +50,44 @@ import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
  */
 
 public class NetworkAlignment {
-   
-  public static final String                // Ordered as in the default link group order
-          COVERED_EDGE = "P",               // Covered Edges
-          ORPHAN_GRAPH1 = "B",                     // G1 Edges w/ two aligned nodes (all non-covered G1 Edges)
-          INDUCED_GRAPH2 = "pRp",           // G2 Edges w/ two aligned nodes (induced)
-          HALF_UNALIGNED_GRAPH2 = "pRr",    // G2 Edges w/ one aligned node and one unaligned node
-          FULL_UNALIGNED_GRAPH2 = "rRr";    // G2 Edges w/ two unaligned nodes
   
-  private final String TEMPORARY = "TEMP";
+  ////////////////////////////////////////////////////////////////////////////
+  //
+  // PUBLIC STATIC MEMBERS
+  //
+  ////////////////////////////////////////////////////////////////////////////
+  
+  public enum EdgeType {
+    COVERED("P", 0),
+    INDUCED_GRAPH1("pBp", 1), HALF_ORPHAN_GRAPH1("pBb", 2), FULL_ORPHAN_GRAPH1("bBb", 3),
+    INDUCED_GRAPH2("pRp", 4), HALF_UNALIGNED_GRAPH2("pRr", 5), FULL_UNALIGNED_GRAPH2("rRr", 6);
+    
+    public final String tag;
+    public final int index;
+    
+    EdgeType(String tag, int index) {
+      this.tag = tag;
+      this.index = index;
+    }
+    
+  }
+  
+  public static final EdgeType[] LINK_GROUPS = {
+          EdgeType.COVERED,
+          EdgeType.INDUCED_GRAPH1, EdgeType.HALF_ORPHAN_GRAPH1, EdgeType.FULL_ORPHAN_GRAPH1,
+          EdgeType.INDUCED_GRAPH2, EdgeType.HALF_UNALIGNED_GRAPH2, EdgeType.FULL_UNALIGNED_GRAPH2
+  };
+  
+  public enum NodeColor {
+    PURPLE("P"), BLUE("B"), RED("R");
+    
+    public final String tag;
+    
+    NodeColor(String tag) {
+      this.tag = tag;
+    }
+    
+  }
   
   ////////////////////////////////////////////////////////////////////////////
   //
@@ -77,6 +107,7 @@ public class NetworkAlignment {
   private NetworkAlignmentBuildData.ViewType outType_;
   private UniqueLabeller idGen_;
   private BTProgressMonitor monitor_;
+  private final String TEMPORARY = "TEMP";
   
   //
   // largeToMergedID only contains aligned nodes
@@ -92,7 +123,8 @@ public class NetworkAlignment {
   
   private ArrayList<NetLink> mergedLinks_;
   private Set<NetNode> mergedLoners_;
-  private Map<NetNode, Boolean> mergedToCorrectNC_, isAlignedNode_;
+  private Map<NetNode, Boolean> mergedToCorrectNC_;
+  private NodeColorMap nodeColorMap_;
   
   private enum Graph {SMALL, LARGE}
   
@@ -107,7 +139,7 @@ public class NetworkAlignment {
                           Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2_,
                           ArrayList<NetLink> linksG1, HashSet<NetNode> lonersG1,
                           ArrayList<NetLink> linksG2, HashSet<NetNode> lonersG2,
-                          Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
+                          Map<NetNode, Boolean> mergedToCorrectNC, NodeColorMap nodeColorMap,
                           NetworkAlignmentBuildData.ViewType outType, UniqueLabeller idGen, BTProgressMonitor monitor) {
     
     this.mapG1toG2_ = mapG1toG2;
@@ -123,7 +155,7 @@ public class NetworkAlignment {
     this.mergedLinks_ = mergedLinks;
     this.mergedLoners_ = mergedLoneNodeIDs;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
-    this.isAlignedNode_ = isAlignedNode;
+    this.nodeColorMap_ = nodeColorMap;
   }
   
   /****************************************************************************
@@ -165,7 +197,7 @@ public class NetworkAlignment {
     // POST processing
     //
     
-    createIsAlignedMap();
+    createNodeColorMap(newLinksG1, newLonersG1, newLinksG2, newLonersG2);
     
     //
     // Orphan Edges: All unaligned edges; plus all of their endpoint nodes' edges
@@ -303,7 +335,8 @@ public class NetworkAlignment {
 
     NetAlignFabricLinkLocator comp = new NetAlignFabricLinkLocator();
     sortLinks(newLinksG1);
-    
+  
+    Set<NetNode> alignedNodesG1 = new HashSet<NetNode>(smallToMergedID_.values());
     Set<NetNode> alignedNodesG2 = new HashSet<NetNode>(largeToMergedID_.values());
     // contains all aligned nodes; contains() works in O(1)
   
@@ -314,28 +347,38 @@ public class NetworkAlignment {
       NetNode src = linkG2.getSrcNode(), trg = linkG2.getTrgNode();
       
       if (index >= 0) {
-        addMergedLink(src, trg, COVERED_EDGE);
+        addMergedLink(src, trg, EdgeType.COVERED.tag);
       } else {
         boolean containsSRC = alignedNodesG2.contains(src), containsTRG = alignedNodesG2.contains(trg);
         if (containsSRC && containsTRG) {
-          addMergedLink(src, trg, INDUCED_GRAPH2);
+          addMergedLink(src, trg, EdgeType.INDUCED_GRAPH2.tag);
         } else if (containsSRC || containsTRG) {
-          addMergedLink(src, trg, HALF_UNALIGNED_GRAPH2);
+          addMergedLink(src, trg, EdgeType.HALF_UNALIGNED_GRAPH2.tag);
         } else {
-          addMergedLink(src, trg, FULL_UNALIGNED_GRAPH2);
+          addMergedLink(src, trg, EdgeType.FULL_UNALIGNED_GRAPH2.tag);
         }
       }
       lr.report();
     }
     lr = new LoopReporter(newLinksG1.size(), 20, monitor_, 0.0, 1.0, "progress.separatingLinksB");
     sortLinks(newLinksG2);
-  
+    
     for (NetLink linkG1 : newLinksG1) {
       
       int index = Collections.binarySearch(newLinksG2, linkG1, comp);
-      
+  
+      NetNode src = linkG1.getSrcNode(), trg = linkG1.getTrgNode();
+  
       if (index < 0) {
-        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), ORPHAN_GRAPH1);
+        boolean containsSRC = alignedNodesG1.contains(src), containsTRG = alignedNodesG1.contains(trg);
+        if (containsSRC && containsTRG) {
+          addMergedLink(src, trg, EdgeType.INDUCED_GRAPH1.tag);
+        } else if (containsSRC || containsTRG) {
+          addMergedLink(src, trg, EdgeType.HALF_ORPHAN_GRAPH1.tag);
+        } else {
+          addMergedLink(src, trg, EdgeType.FULL_ORPHAN_GRAPH1.tag);
+        }
+//        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), INDUCED_GRAPH1);
       }
       lr.report();
     }
@@ -372,20 +415,34 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   ** POST processing: Create isAlignedNode map
+   ** POST processing: Create NodeColorMap map
    */
   
-  private void createIsAlignedMap() throws AsynchExitRequestException {
+  private void createNodeColorMap(List<NetLink> newLinksG1, Set<NetNode> newLonersG1,
+                                  List<NetLink> newLinksG2, Set<NetNode> newLonersG2) throws AsynchExitRequestException {
+    
+    Set<NetNode> nodesG1 = (new BuildExtractorImpl()).extractNodes(newLinksG1, newLonersG1, monitor_);
+    Set<NetNode> nodesG2 = (new BuildExtractorImpl()).extractNodes(newLinksG2, newLonersG2, monitor_);
   
-    Set<NetNode> allNodes = PluginSupportFactory.getBuildExtractor().extractNodes(mergedLinks_, mergedLoners_, monitor_);
-    for (NetNode node : allNodes) {
-      // here mergedIDToSmall_ is a tool: if node is in it, we know it is an aligned node
-      if (mergedIDToSmall_.get(node) != null) {
-        isAlignedNode_.put(node, true);
+    Set<NetNode> alignedNodes = mergedIDToSmall_.keySet();
+    Map<NetNode, NodeColor> map = new HashMap<NetNode, NodeColor>();
+    
+    for (NetNode node : nodesG1) {
+      if (alignedNodes.contains(node)) {
+        map.put(node, NodeColor.PURPLE);
       } else {
-        isAlignedNode_.put(node, false);
+        map.put(node, NodeColor.BLUE);
       }
     }
+    for (NetNode node : nodesG2) {
+      if (alignedNodes.contains(node)) {
+        // essentially re-assigns purple nodes for no reason
+        map.put(node, NodeColor.PURPLE);
+      } else {
+        map.put(node, NodeColor.RED);
+      }
+    }
+    nodeColorMap_.setMap(map);
     return;
   }
   
@@ -416,6 +473,27 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
+   **
+   */
+  
+  public static class NodeColorMap {
+    
+    private Map<NetNode, NodeColor> map;
+    
+    public NodeColorMap() {}
+  
+    public void setMap(Map<NetNode, NodeColor> map) {
+      this.map = map;
+    }
+  
+    public NodeColor getColor(NetNode node) {
+      return (map.get(node));
+    }
+    
+  }
+  
+  /****************************************************************************
+   **
    ** All unaligned edges plus all of their endpoint nodes' edges
    */
   
@@ -433,7 +511,7 @@ public class NetworkAlignment {
       
       Set<NetNode> blueNodesG1 = new TreeSet<NetNode>();
       for (NetLink link : mergedLinks) { // find the nodes of interest
-        if (link.getRelation().equals(ORPHAN_GRAPH1)) {
+        if (link.getRelation().equals(EdgeType.INDUCED_GRAPH1.tag)) {
           blueNodesG1.add(link.getSrcNode()); // it's a set - so with shadows no duplicates
           blueNodesG1.add(link.getTrgNode());
         }
