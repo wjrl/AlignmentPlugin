@@ -538,7 +538,7 @@ public class NetworkAlignmentScorer {
         relToIndex.put(type.tag, type.index);
       }
 
-      VectorND vector = new VectorND(NetworkAlignment.NUMBER_LINK_GROUPS);
+      VectorND vector = new VectorND(NetworkAlignment.LINK_GROUPS.length);
       Map<String, Double> lgRatios = groupMap.getLinkGroupRatios();
       
       for (Map.Entry<String, Double> entry : lgRatios.entrySet()) {

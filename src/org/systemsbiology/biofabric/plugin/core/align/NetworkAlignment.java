@@ -78,8 +78,6 @@ public class NetworkAlignment {
           EdgeType.INDUCED_GRAPH2, EdgeType.HALF_UNALIGNED_GRAPH2, EdgeType.FULL_UNALIGNED_GRAPH2
   };
   
-  public static final int NUMBER_LINK_GROUPS = LINK_GROUPS.length;
-  
   public enum NodeColor {
     PURPLE("P"), BLUE("B"), RED("R");
     
