@@ -229,9 +229,9 @@ public class NetworkAlignment {
   
   private void createMergedNodes() {
     
-    smallToMergedID_ = new TreeMap<NetNode, NetNode>();
-    largeToMergedID_ = new TreeMap<NetNode, NetNode>();
-    mergedIDToSmall_ = new TreeMap<NetNode, NetNode>();
+    smallToMergedID_ = new HashMap<NetNode, NetNode>();
+    largeToMergedID_ = new HashMap<NetNode, NetNode>();
+    mergedIDToSmall_ = new HashMap<NetNode, NetNode>();
     
     boolean doingPerfectGroup = (outType_ == NetworkAlignmentBuildData.ViewType.GROUP) &&
                                 (perfectG1toG2_ != null);
