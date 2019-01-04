@@ -36,6 +36,7 @@ import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
+import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 
 
 /****************************************************************************
@@ -131,20 +132,30 @@ public class NetworkAlignmentScorer {
     this.lonersLarge_ = lonersLarge;
     this.mapG1toG2_ = mapG1toG2;
     this.perfectG1toG2_ = perfectG1toG2;
-//    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
-//            mergedToCorrectNC, isAlignedNode, nodeColorMap, NodeGroupMap.PerfectNGMode.NONE, null,
-//            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-//    if (mergedToCorrectNC != null) {
-//      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,          // investigate parameters
-//              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, nodeColorMapPerfect, NodeGroupMap.PerfectNGMode.NONE, null,
-//              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-//    }
-    removeDuplicateAndShadow();
-    generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_,
-            graph1NodesMain_, nodeColorMapMain_);
+    // Create Node Group Map to use for NGS/LGS
+    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
+            mergedToCorrectNC, nodeColorMapMain_, NodeGroupMap.PerfectNGMode.NONE, null,
+            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
     if (mergedToCorrectNC != null) {
-      generateStructs(linksPerfect, loneNodeIDsPerfect, nodeToLinksPerfect_,
-              nodeToNeighborsPerfect_, graph1NodesPerfect_, nodeColorMapPerfect_);
+      // investigate parameters
+      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, perfectG1toG2, null,
+              linksLarge, lonersLarge, null, nodeColorMapPerfect, NodeGroupMap.PerfectNGMode.NONE, null,
+              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
+    }
+    
+    removeDuplicateAndShadow();
+    // Generate Structures
+//    generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_,
+//            graph1NodesMain_, nodeColorMapMain_);
+    (new BuildExtractorImpl()).createNeighborLinkMap(linksMain_, loneNodeIDsMain_, nodeToNeighborsMain_, nodeToLinksMain_, monitor_);
+    generateGraphOneNodes(linksMain_, loneNodeIDsMain_, graph1NodesMain_, nodeColorMapMain_);
+  
+    if (mergedToCorrectNC != null) {
+//      generateStructs(linksPerfect, loneNodeIDsPerfect, nodeToLinksPerfect_,
+//              nodeToNeighborsPerfect_, graph1NodesPerfect_, nodeColorMapPerfect_);
+      (new BuildExtractorImpl()).createNeighborLinkMap(linksPerfect_, loneNodeIDsPerfect_,
+              nodeToNeighborsPerfect_, nodeToLinksPerfect_, monitor_);
+      generateGraphOneNodes(linksPerfect_, loneNodeIDsPerfect_, graph1NodesPerfect_, nodeColorMapPerfect_);
     }
     calcScores();
     finalizeMeasures();
@@ -196,55 +207,62 @@ public class NetworkAlignmentScorer {
   
   /****************************************************************************
    **
-   ** Create structures (node-to-neighbors and node-to-links)
-   ** Also create map : String -> Graph 1 node (blue or purple)
+   ** Create map : String -> Graph 1 node (blue or purple)
    */
   
-  private void generateStructs(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs, Map<NetNode,
-          Set<NetLink>> nodeToLinks, Map<NetNode, Set<NetNode>> nodeToNeighbors,
-          Map<String, NetNode> graph1Nodes, NetworkAlignment.NodeColorMap colorMap) throws AsynchExitRequestException {
-    
-    LoopReporter lr = new LoopReporter(allLinks.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
-    for (NetLink link : allLinks) {
-      lr.report();
-      NetNode src = link.getSrcNode(), trg = link.getTrgNode();
-      
-      if (nodeToLinks.get(src) == null) {
-        nodeToLinks.put(src, new HashSet<NetLink>());
-      }
-      if (nodeToLinks.get(trg) == null) {
-        nodeToLinks.put(trg, new HashSet<NetLink>());
-      }
-      if (nodeToNeighbors.get(src) == null) {
-        nodeToNeighbors.put(src, new HashSet<NetNode>());
-      }
-      if (nodeToNeighbors.get(trg) == null) {
-        nodeToNeighbors.put(trg, new HashSet<NetNode>());
-      }
-      
-      nodeToLinks.get(src).add(link);
-      nodeToLinks.get(trg).add(link);
-      nodeToNeighbors.get(src).add(trg);
-      nodeToNeighbors.get(trg).add(src);
-      
-      // Create Purple + Blue node map
-      
-      if (colorMap.getColor(src) == NetworkAlignment.NodeColor.PURPLE ||
-              colorMap.getColor(src) == NetworkAlignment.NodeColor.BLUE) {
-        String g1name = StringUtilities.separateNodeOne(src.getName());
-        graph1Nodes.put(g1name, src);
-      }
-      if (colorMap.getColor(trg) == NetworkAlignment.NodeColor.PURPLE ||
-              colorMap.getColor(trg) == NetworkAlignment.NodeColor.BLUE) {
-        String g1name = StringUtilities.separateNodeOne(src.getName());
-        graph1Nodes.put(g1name, trg);
+  private void generateGraphOneNodes(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
+                                     Map<String, NetNode> graph1Nodes, NetworkAlignment.NodeColorMap colorMap)
+          throws AsynchExitRequestException {
+
+    Set<NetNode> allNodes = (new BuildExtractorImpl()).extractNodes(allLinks, loneNodeIDs, monitor_);
+    for (NetNode node : allNodes) {
+      if (colorMap.getColor(node) == NetworkAlignment.NodeColor.PURPLE ||
+              colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
+        String g1name = StringUtilities.separateNodeOne(node.getName());
+        graph1Nodes.put(g1name, node);
       }
     }
-    
-    for (NetNode node : loneNodeIDs) {
-      nodeToLinks.put(node, new HashSet<NetLink>());
-      nodeToNeighbors.put(node, new HashSet<NetNode>());
-    }
+//    LoopReporter lr = new LoopReporter(allLinks.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
+//    for (NetLink link : allLinks) {
+//      lr.report();
+//      NetNode src = link.getSrcNode(), trg = link.getTrgNode();
+//
+//      if (nodeToLinks.get(src) == null) {
+//        nodeToLinks.put(src, new HashSet<NetLink>());
+//      }
+//      if (nodeToLinks.get(trg) == null) {
+//        nodeToLinks.put(trg, new HashSet<NetLink>());
+//      }
+//      if (nodeToNeighbors.get(src) == null) {
+//        nodeToNeighbors.put(src, new HashSet<NetNode>());
+//      }
+//      if (nodeToNeighbors.get(trg) == null) {
+//        nodeToNeighbors.put(trg, new HashSet<NetNode>());
+//      }
+//
+//      nodeToLinks.get(src).add(link);
+//      nodeToLinks.get(trg).add(link);
+//      nodeToNeighbors.get(src).add(trg);
+//      nodeToNeighbors.get(trg).add(src);
+//
+//      // Create Purple + Blue node map
+//
+//      if (colorMap.getColor(src) == NetworkAlignment.NodeColor.PURPLE ||
+//              colorMap.getColor(src) == NetworkAlignment.NodeColor.BLUE) {
+//        String g1name = StringUtilities.separateNodeOne(src.getName());
+//        graph1Nodes.put(g1name, src);
+//      }
+//      if (colorMap.getColor(trg) == NetworkAlignment.NodeColor.PURPLE ||
+//              colorMap.getColor(trg) == NetworkAlignment.NodeColor.BLUE) {
+//        String g1name = StringUtilities.separateNodeOne(src.getName());
+//        graph1Nodes.put(g1name, trg);
+//      }
+//    }
+//
+//    for (NetNode node : loneNodeIDs) {
+//      nodeToLinks.put(node, new HashSet<NetLink>());
+//      nodeToNeighbors.put(node, new HashSet<NetNode>());
+//    }
     return;
   }
   
@@ -258,7 +276,7 @@ public class NetworkAlignmentScorer {
   
     if (mergedToCorrectNC_ != null) { // must have perfect alignment for these measures
       calcNodeCorrectness();
-//      calcGroupSimilarity();
+      calcGroupSimilarity();
 //      calcJaccardSimilarity();
     }
   }

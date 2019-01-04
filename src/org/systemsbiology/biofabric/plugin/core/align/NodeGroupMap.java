@@ -36,6 +36,7 @@ import org.systemsbiology.biofabric.api.model.NetNode;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
+import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /***************************************************************************
@@ -139,7 +140,10 @@ public class NodeGroupMap {
       this.funcJS_ = new JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, jaccSimThreshold, monitor);
     }
     this.monitor_ = monitor;
-    generateStructs(allLinks, loneNodeIDs);
+    this.nodeToNeighbors_ = new HashMap<NetNode, Set<NetNode>>();
+    this.nodeToLinks_ = new HashMap<NetNode, Set<NetLink>>();
+    //    generateStructs(allLinks, loneNodeIDs);
+    (new BuildExtractorImpl()).createNeighborLinkMap(links_, loners_, nodeToNeighbors_, nodeToLinks_, monitor_);
     generateOrderMap(nodeGroupOrder);
     generateColorMap(colorMap);
     calcNGRatios();
@@ -147,46 +151,46 @@ public class NodeGroupMap {
     return;
   }
   
-  ////////////////////////////////////////////////////////////////////////////
-  //
-  // PRIVATE METHODS
-  //
-  ////////////////////////////////////////////////////////////////////////////
-  
-  private void generateStructs(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs) throws AsynchExitRequestException {
-    LoopReporter lr = new LoopReporter(allLinks.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
-    nodeToLinks_ = new HashMap<NetNode, Set<NetLink>>();
-    nodeToNeighbors_ = new HashMap<NetNode, Set<NetNode>>();
-    
-    for (NetLink link : allLinks) {
-      lr.report();
-      NetNode src = link.getSrcNode(), trg = link.getTrgNode();
-      
-      if (nodeToLinks_.get(src) == null) {
-        nodeToLinks_.put(src, new HashSet<NetLink>());
-      }
-      if (nodeToLinks_.get(trg) == null) {
-        nodeToLinks_.put(trg, new HashSet<NetLink>());
-      }
-      if (nodeToNeighbors_.get(src) == null) {
-        nodeToNeighbors_.put(src, new HashSet<NetNode>());
-      }
-      if (nodeToNeighbors_.get(trg) == null) {
-        nodeToNeighbors_.put(trg, new HashSet<NetNode>());
-      }
-      
-      nodeToLinks_.get(src).add(link);
-      nodeToLinks_.get(trg).add(link);
-      nodeToNeighbors_.get(src).add(trg);
-      nodeToNeighbors_.get(trg).add(src);
-    }
-    
-    for (NetNode node : loneNodeIDs) {
-      nodeToLinks_.put(node, new HashSet<NetLink>());
-      nodeToNeighbors_.put(node, new HashSet<NetNode>());
-    }
-    return;
-  }
+//  //////////////////////////////////////////////////////////////////////////
+//
+//   PRIVATE METHODS
+//
+//  //////////////////////////////////////////////////////////////////////////
+//
+//  private void generateStructs(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs) throws AsynchExitRequestException {
+//    LoopReporter lr = new LoopReporter(allLinks.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
+//    nodeToLinks_ = new HashMap<NetNode, Set<NetLink>>();
+//    nodeToNeighbors_ = new HashMap<NetNode, Set<NetNode>>();
+//
+//    for (NetLink link : allLinks) {
+//      lr.report();
+//      NetNode src = link.getSrcNode(), trg = link.getTrgNode();
+//
+//      if (nodeToLinks_.get(src) == null) {
+//        nodeToLinks_.put(src, new HashSet<NetLink>());
+//      }
+//      if (nodeToLinks_.get(trg) == null) {
+//        nodeToLinks_.put(trg, new HashSet<NetLink>());
+//      }
+//      if (nodeToNeighbors_.get(src) == null) {
+//        nodeToNeighbors_.put(src, new HashSet<NetNode>());
+//      }
+//      if (nodeToNeighbors_.get(trg) == null) {
+//        nodeToNeighbors_.put(trg, new HashSet<NetNode>());
+//      }
+//
+//      nodeToLinks_.get(src).add(link);
+//      nodeToLinks_.get(trg).add(link);
+//      nodeToNeighbors_.get(src).add(trg);
+//      nodeToNeighbors_.get(trg).add(src);
+//    }
+//
+//    for (NetNode node : loneNodeIDs) {
+//      nodeToLinks_.put(node, new HashSet<NetLink>());
+//      nodeToNeighbors_.put(node, new HashSet<NetNode>());
+//    }
+//    return;
+//  }
   
   private void generateOrderMap(String[] nodeGroupOrder) {
     groupIDtoIndex_ = new HashMap<GroupID, Integer>();
