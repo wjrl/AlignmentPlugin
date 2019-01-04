@@ -79,9 +79,15 @@ public class NetworkAlignmentScorer {
   private BTProgressMonitor monitor_;
   private PluginResourceManager rMan_;
   
+  //
+  // Graph 1 Nodes has the original names (A) that maps to Node(A::) and Node(A::B)
+  // It maps the original Graph 1 node name to resulting blue or purple node
+  //
+  
   private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
   private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
   private NodeGroupMap groupMapMain_, groupMapPerfect_;
+  private Map<String, NetNode> graph1NodesMain_, graph1NodesPerfect_;
   
   //
   // The scores
@@ -115,8 +121,10 @@ public class NetworkAlignmentScorer {
     this.monitor_ = monitor;
     this.nodeToLinksMain_ = new HashMap<NetNode, Set<NetLink>>();
     this.nodeToNeighborsMain_ = new HashMap<NetNode, Set<NetNode>>();
+    this.graph1NodesMain_ = new HashMap<String, NetNode>();
     this.nodeToLinksPerfect_ = new HashMap<NetNode, Set<NetLink>>();
     this.nodeToNeighborsPerfect_ = new HashMap<NetNode, Set<NetNode>>();
+    this.graph1NodesPerfect_ = new HashMap<String, NetNode>();
     this.linksSmall_ = linksSmall;
     this.lonersSmall_ = lonersSmall;
     this.linksLarge_ = linksLarge;
@@ -132,9 +140,11 @@ public class NetworkAlignmentScorer {
 //              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
 //    }
     removeDuplicateAndShadow();
-    generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_);
+    generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_,
+            graph1NodesMain_, nodeColorMapMain_);
     if (mergedToCorrectNC != null) {
-      generateStructs(linksPerfect, loneNodeIDsPerfect, nodeToLinksPerfect_, nodeToNeighborsPerfect_);
+      generateStructs(linksPerfect, loneNodeIDsPerfect, nodeToLinksPerfect_,
+              nodeToNeighborsPerfect_, graph1NodesPerfect_, nodeColorMapPerfect_);
     }
     calcScores();
     finalizeMeasures();
@@ -186,39 +196,54 @@ public class NetworkAlignmentScorer {
   
   /****************************************************************************
    **
-   ** Create structures (node-to-neighbors and node-to-inks
+   ** Create structures (node-to-neighbors and node-to-links)
+   ** Also create map : String -> Graph 1 node (blue or purple)
    */
   
   private void generateStructs(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs, Map<NetNode,
-          Set<NetLink>> nodeToLinks_, Map<NetNode, Set<NetNode>> nodeToNeighbors_) throws AsynchExitRequestException {
+          Set<NetLink>> nodeToLinks, Map<NetNode, Set<NetNode>> nodeToNeighbors,
+          Map<String, NetNode> graph1Nodes, NetworkAlignment.NodeColorMap colorMap) throws AsynchExitRequestException {
     
     LoopReporter lr = new LoopReporter(allLinks.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
     for (NetLink link : allLinks) {
       lr.report();
       NetNode src = link.getSrcNode(), trg = link.getTrgNode();
       
-      if (nodeToLinks_.get(src) == null) {
-        nodeToLinks_.put(src, new HashSet<NetLink>());
+      if (nodeToLinks.get(src) == null) {
+        nodeToLinks.put(src, new HashSet<NetLink>());
       }
-      if (nodeToLinks_.get(trg) == null) {
-        nodeToLinks_.put(trg, new HashSet<NetLink>());
+      if (nodeToLinks.get(trg) == null) {
+        nodeToLinks.put(trg, new HashSet<NetLink>());
       }
-      if (nodeToNeighbors_.get(src) == null) {
-        nodeToNeighbors_.put(src, new HashSet<NetNode>());
+      if (nodeToNeighbors.get(src) == null) {
+        nodeToNeighbors.put(src, new HashSet<NetNode>());
       }
-      if (nodeToNeighbors_.get(trg) == null) {
-        nodeToNeighbors_.put(trg, new HashSet<NetNode>());
+      if (nodeToNeighbors.get(trg) == null) {
+        nodeToNeighbors.put(trg, new HashSet<NetNode>());
       }
       
-      nodeToLinks_.get(src).add(link);
-      nodeToLinks_.get(trg).add(link);
-      nodeToNeighbors_.get(src).add(trg);
-      nodeToNeighbors_.get(trg).add(src);
+      nodeToLinks.get(src).add(link);
+      nodeToLinks.get(trg).add(link);
+      nodeToNeighbors.get(src).add(trg);
+      nodeToNeighbors.get(trg).add(src);
+      
+      // Create Purple + Blue node map
+      
+      if (colorMap.getColor(src) == NetworkAlignment.NodeColor.PURPLE ||
+              colorMap.getColor(src) == NetworkAlignment.NodeColor.BLUE) {
+        String g1name = StringUtilities.separateNodeOne(src.getName());
+        graph1Nodes.put(g1name, src);
+      }
+      if (colorMap.getColor(trg) == NetworkAlignment.NodeColor.PURPLE ||
+              colorMap.getColor(trg) == NetworkAlignment.NodeColor.BLUE) {
+        String g1name = StringUtilities.separateNodeOne(src.getName());
+        graph1Nodes.put(g1name, trg);
+      }
     }
     
     for (NetNode node : loneNodeIDs) {
-      nodeToLinks_.put(node, new HashSet<NetLink>());
-      nodeToNeighbors_.put(node, new HashSet<NetNode>());
+      nodeToLinks.put(node, new HashSet<NetLink>());
+      nodeToNeighbors.put(node, new HashSet<NetNode>());
     }
     return;
   }
@@ -233,8 +258,8 @@ public class NetworkAlignmentScorer {
   
     if (mergedToCorrectNC_ != null) { // must have perfect alignment for these measures
       calcNodeCorrectness();
-      calcGroupSimilarity();
-      calcJaccardSimilarity();
+//      calcGroupSimilarity();
+//      calcJaccardSimilarity();
     }
   }
   
@@ -276,22 +301,22 @@ public class NetworkAlignmentScorer {
   
   private void calcTopologicalMeasures() throws AsynchExitRequestException{
     LoopReporter lr = new LoopReporter(linksMain_.size(), 20, monitor_, 0.0, 1.0, "progress.topologicalMeasures");
-    int numCoveredEdge = 0, numGraph1 = 0, numInducedGraph2 = 0;
+    int numCoveredEdge = 0, numInducedGraph1 = 0, numInducedGraph2 = 0;
     
     for (NetLink link : linksMain_) {
       lr.report();
       if (link.getRelation().equals(NetworkAlignment.EdgeType.COVERED.tag)) {
         numCoveredEdge++;
       } else if (link.getRelation().equals(NetworkAlignment.EdgeType.INDUCED_GRAPH1.tag)) {
-        numGraph1++;
+        numInducedGraph1++;
       } else if (link.getRelation().equals(NetworkAlignment.EdgeType.INDUCED_GRAPH2.tag)) {
         numInducedGraph2++;
       }
     }
     
-    try {   // this is wrong with the new NG definitions
-      EC = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1);
-      S3 = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1 + numInducedGraph2);
+    try {
+      EC = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1);
+      S3 = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1 + numInducedGraph2);
       ICS = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph2);
     } catch (ArithmeticException ae) {
       EC = null;
@@ -579,6 +604,29 @@ public class NetworkAlignmentScorer {
       double measure = totJ / entrezAlign.keySet().size();
       return (measure);
     }
+    
+  }
+  
+  /****************************************************************************
+   **
+   ** String Utilities
+   */
+  
+  private static class StringUtilities {
+  
+    /****************************************************************************
+     **
+     ** For "A::" and "A::B" this returns "A"
+     */
+    
+    static String separateNodeOne(String in) {
+      if (!in.contains("::")) {
+        throw (new IllegalArgumentException("Node name needs ::"));
+      }
+      String ret = (in.split("::"))[0];
+      return ret;
+    }
+    
     
   }
 

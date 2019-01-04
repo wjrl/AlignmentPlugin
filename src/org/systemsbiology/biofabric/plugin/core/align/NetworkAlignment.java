@@ -115,11 +115,9 @@ public class NetworkAlignment {
   // largeToMergedID only contains aligned nodes
   //
   
-  private Map<NetNode, NetNode> smallToMergedID_;
-  private Map<NetNode, NetNode> largeToMergedID_;
+  private Map<NetNode, NetNode> smallToMergedID_, largeToMergedID_;
   private Map<NetNode, NetNode> mergedIDToSmall_;
-  private Map<NetNode, NetNode> smallToUnmergedID_;
-  private Map<NetNode, NetNode> largeToUnmergedID_;
+  private Map<NetNode, NetNode> smallToUnmergedID_, largeToUnmergedID_;
   
   //
   // mergedToCorrect only has aligned nodes
@@ -260,7 +258,7 @@ public class NetworkAlignment {
       
       if (doingPerfectGroup) { // perfect alignment must be provided
         NetNode perfectLarge = perfectG1toG2_.get(smallNode);
-        boolean alignedCorrect = perfectLarge.equals(largeNode);
+        boolean alignedCorrect = (perfectLarge != null) && perfectLarge.equals(largeNode);
         mergedToCorrectNC_.put(merged_node, alignedCorrect);
       }
     }
@@ -269,11 +267,13 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   ** Create unmerged nodes, install into maps
+   ** Create unmerged nodes, install into maps; Correctness for blue nodes
    */
   
   private void createUnmergedNodes(GraphType type) throws AsynchExitRequestException {
-    
+  
+    boolean doingPerfectGroup = (outType_ == NetworkAlignmentBuildData.ViewType.GROUP) &&
+            (perfectG1toG2_ != null);
     Map<NetNode, NetNode> oldToUnmerged, oldToMerged;
     Set<NetNode> nodes;
     switch (type) {
@@ -297,6 +297,15 @@ public class NetworkAlignment {
       }
       NetNode unalignedName = modifyName(node, type);
       oldToUnmerged.put(node, unalignedName);
+      
+      // We are dealing with Blue nodes, so if perfect alignment is not aligning
+      // the node either, it is correct
+  
+      if (type == GraphType.SMALL && doingPerfectGroup) { // perfect alignment must be provided
+        NetNode perfectLarge = perfectG1toG2_.get(node);
+        boolean unalignedCorrectly = (perfectLarge == null);
+        mergedToCorrectNC_.put(node, unalignedCorrectly);
+      }
     }
     return;
   }
@@ -311,9 +320,9 @@ public class NetworkAlignment {
     NID newID = idGen_.getNextOID();
     String newName;
     if (type == NetworkAlignment.GraphType.SMALL) {
-      newName = (new StringBuilder(node.getName())).append("::").toString();  // A:: for blue nodes
+      newName = String.format("%s::", node.getName());  // A:: for blue nodes
     } else if (type == NetworkAlignment.GraphType.LARGE) {
-      newName = (new StringBuilder("::")).append(node.getName()).toString();  // ::B for red nodes
+      newName = String.format("::%s", node.getName());  // ::B for red nodes
     } else {
       throw (new IllegalArgumentException("Incorrect graph type"));
     }

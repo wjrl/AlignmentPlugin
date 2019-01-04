@@ -479,7 +479,7 @@ public class NodeGroupMap {
     private final Double jaccSimThreshold_;
     
     final Map<NetNode, NetNode> entrezAlign;
-  
+    
     JaccardSimilarityFunc(Map<NetNode, NetNode> mapG1toG2,
                           Map<NetNode, NetNode> perfectG1toG2,
                           ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
@@ -498,6 +498,11 @@ public class NodeGroupMap {
       constructEntrezAlign();
       constructLargeMap();
     }
+    
+//    JaccardSimilarityFunc(Map<NetNode, Set<NetNode>> nodeToNeighborsMain,
+//                          Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect) {
+//      // use strings from the blue nodes and first half of purple nodes for JS
+//    }
   
     /***************************************************************************
      **
@@ -525,7 +530,7 @@ public class NodeGroupMap {
   
     /***************************************************************************
      **
-     ** Jaccard Similarity between two nodes in G2
+     ** Jaccard Similarity between two nodes in G2; sigma(x,y)
      */
   
     double jaccSimValue(NetNode node, NetNode match) {

@@ -460,11 +460,11 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       																							 reducedLinksPerfect, cacheFile, true, true);
     }
   
-//    if (finished) { // Score Report
-//      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, nodeColorMap, mergedToCorrectNC,
-//              reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect, pendingNetAlignStats_,
-//              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
-//    }
+    if (finished) { // Score Report
+      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, nodeColorMap, mergedToCorrectNC,
+              reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect, pendingNetAlignStats_,
+              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
+    }
    
     if (finished) { // Load the alignments
       
