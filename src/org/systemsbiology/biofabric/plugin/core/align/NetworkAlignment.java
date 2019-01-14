@@ -1,6 +1,6 @@
 /*
 **
-**    Copyright (C) 2018 Rishi Desai
+**    Copyright (C) 2016-2019 Rishi Desai
 **
 **    Copyright (C) 2003-2018 Institute for Systems Biology
 **                            Seattle, Washington, USA.
@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
@@ -222,7 +221,7 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   ** Create merged nodes, install into maps
+   ** Create merged nodes (Purple), install into maps; Correctness for Purple nodes
    */
   
   private void createMergedNodes() {
@@ -267,7 +266,7 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   ** Create unmerged nodes, install into maps; Correctness for blue nodes
+   ** Create unmerged nodes (Blue or Red), install into maps; Correctness for Blue nodes
    */
   
   private void createUnmergedNodes(GraphType type) throws AsynchExitRequestException {
@@ -278,12 +277,12 @@ public class NetworkAlignment {
     Set<NetNode> nodes;
     switch (type) {
       case SMALL:
-        nodes = (new BuildExtractorImpl()).extractNodes(linksG1_, lonersG1_, monitor_);
+        nodes = PluginSupportFactory.getBuildExtractor().extractNodes(linksG1_, lonersG1_, monitor_);
         oldToMerged = smallToMergedID_;
         oldToUnmerged = smallToUnmergedID_;
         break;
       case LARGE:
-        nodes = (new BuildExtractorImpl()).extractNodes(linksG2_, lonersG2_, monitor_);
+        nodes = PluginSupportFactory.getBuildExtractor().extractNodes(linksG2_, lonersG2_, monitor_);
         oldToMerged = largeToMergedID_;
         oldToUnmerged = largeToUnmergedID_;
         break;
@@ -542,7 +541,7 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   **
+   ** This maps every node in V12 to its color: Blue, Purple, or Red
    */
   
   public static class NodeColorMap {
