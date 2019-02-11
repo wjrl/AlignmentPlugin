@@ -1,10 +1,10 @@
 <html>
 <head>
-<title>BioFabric Network Alignment Visualization Package (BF-NAVP)</title>
+<title>VISNAB: Visualization of Network Alignments using BioFabric</title>
 <link rel="shortcut icon" href="http://www.BioFabric.org/favicon.ico" />
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
-<meta name="description" content="BioFabric is an interactive tool for visualizing and exploring large networks.">
-<meta name="keywords" content="networks, network visualization, systems biology software, graph layout, open-source, combing the hairball">
+<meta name="description" content="VISNAB is a BioFabric plugin that provides novel new visualization tools for exploring network alignments.">
+<meta name="keywords" content="network alignment, networks, network visualization, systems biology software, graph layout, open-source, combing the hairball">
 <style>
 body{
 font-family: Arial, Helvetica, sans-serif;
@@ -33,7 +33,7 @@ font-family: Arial, Helvetica, sans-serif;
 <hr noshade="true"/>
 
 <center>
-<h1>BioFabric Network Alignment Visualization Plugin (BF-NAVP)</h1>
+<h1>VISNAB: Visualization of Network Alignments using BioFabric</h1>
 </center>
 
 <table>
@@ -55,7 +55,7 @@ font-family: Arial, Helvetica, sans-serif;
 <center>
 <table width="70%" cols="1">
 <tr><th bgcolor="#E0E0E0"><center>News</center></th></tr>
-<tr><td bgcolor="#E0E0E0"><center><b>September XX, 2018:</b> The BF-NAVP manuscript has been submitted</br></center></td></tr>
+<tr><td bgcolor="#E0E0E0"><center><b>September XX, 2018:</b> The VISNAB manuscript has been submitted</br></center></td></tr>
 </table>
 </center>
 
@@ -65,17 +65,15 @@ font-family: Arial, Helvetica, sans-serif;
 <h3>Description</h3>
 
 <center>
-<img src="images/yeastPerfect900pix.png" width="900" height="180" border="1" alt="BF-NAVP Network"/></a>
+<img src="images/yeastPerfect900pix.png" width="900" height="180" border="1" alt="VISNAB Network"/></a>
 </center>
 
-
-
 <p>
-The BioFabric Network Alignment Visualization Plugin (BF-NAVP) is a software tool that is designed to give network researchers the ability to usefully visualize
-the results of a network alignment, even for very large networks. NAVP provides the user with new insights into network alignment deficiencies that are 
+The Visualization of Network Alignments using BioFabric (VISNAB) plugin is a software tool that is designed to give network researchers the ability to usefully visualize
+the results of a network alignment, even for very large networks. VISNAB provides the user with new insights into network alignment deficiencies that are 
 not revealed through the simple evaluation and comparison of the standard numerical topological measures. 
 </p>
-Significant features for NAVP:
+Significant features for VISNAB:
 <ul>
 <li>
 Node groups and link groups provide a flexible method to characterize an alignment's topology. With BioFabric V2, node and link group annotations clearly highlight the different groups.
@@ -106,21 +104,41 @@ BioFabric provides the values of many common alignment measures, including EC, S
 
 <h4>Preparations</h4>
 <p>
-BF-NAVP requires that the user first install BioFabric Version 2 (Beta), which is currently under development. BioFabric is written in Java, and can be run 
-on your Windows, Mac, or Linux computer. For Windows, you will first need to install the Java Runtime Environment (JRE), which can be downloaded from 
+VISNAB is written as a BioFabric plugin, and requires that your first install BioFabric Version 2 (Beta), which is currently under development. 
+Note that the current production Version 1.0 of BioFabric is not designed to support plugins; <b>Version 2 is required</b>. BioFabric is written in Java, 
+and can be run on your Windows, Mac, or Linux computer. For Windows, you will first need to install the Java Runtime Environment (JRE), which can be downloaded from 
 <a href="http://www.java.com/">here</a> (click the "Free Java Download" button). For the Mac, the executable already contains the JRE.
 </p>
 <p>
-<b>NOTE:</b> Downloadable executables for BioFabric Version 2 (Beta) are still in preparation. In the meantime, the program can be built from source code 
-available from the <a href="https://github.com/wjrl/BioFabric">GitHub</a> page.
+BioFabric Version 2 (Beta) is currently available either as a zip file for Windows (named <code>BioFabric20B1.zip</code>) or as a mountable disk image 
+for Macs (named <code>BioFabricInstallImageV2BetaRel1.dmg</code>). These are both available from the 
+<a href="https://github.com/wjrl/BioFabric/releases/tag/V2.0Beta1a">BioFabric GitHub repository release page</a>. 
 </p>
+<ul>
+<li>
+<b>Windows:</b> Unzip the <code>BioFabric20B1.zip</code> file and drag the <code>BioFabric.exe</code> file out of the archive and 
+drop it on your desktop. Double-clicking on the desktop 
+icon will start the program running. On Windows, you will probably need to agree to run software from an unknown publisher, or read a 
+message that "Windows protected your PC", that the app is unrecognized, and you will need to click on the <b>More info</b> link to be able to choose
+the option to <b>Run Anyway</b>. (Note: The executable file <i>has been signed</i>, but the signing certificate has currently expired.) 
+</li><br/>
+<li>
+<b>Mac:</b> Double-click the downloaded <code>BioFabricInstallImageV2BetaRel1.dmg</code> disk image file to mount it, and then 
+open a Finder window for the mounted disk. From the Finder window, 
+drag the BioFabric icon inside onto your desktop (or, if you prefer, into your Applications folder). Both the disk image and the BioFabric program 
+itself have been signed. However, if <b>Mac Gatekeeper</b> has been set to restrict to only <b>App Store</b>, you will need to launch <b>System Preferences</b>, 
+click on <b>Security & Privacy</b>, and on the <b>General</b> tab set <b>Allow apps downloaded from: App Store and identified developers</b>. 
+If you take this step, you may wish to reset it back to <b>App Store</b> after starting BioFabric the first time. 
+</li><br/>
+</ul>
+
 <h4>Installing the Plugin</h4>
-<p>
-NAVP is written as a BioFabric Plugin. To install it, you will simply drop the <code>AlignmentPlugin.jar</code> file available (soon) on 
-the <a href="https://github.com/wjrl/AlignmentPlugin">GitHub</a> project page into a directory on your computer. Start BioFabric, and use 
-<b>File->Set Plugin Directory...</b> to point to that directory where you have placed <code>AlignmentPlugin.jar</code>. Restart BioFabric,
-and the NAVP commands will appear in the <b>Tools->Network Alignment</b> menu.
-</p>
+The <b>VISNAB</b> plugin is a Java JAR file. This compiled JAR file is available on the 
+<a href="https://github.com/wjrl/AlignmentPlugin/releases/tag/v1.0.0.1">VISNAB GitHub repository release page</a>. To install it, download the 
+<code>sVISNAB-V1.0.0.1.jar</code> file, then simply drop that file into a directory on your computer. (Note that there should be only one copy of the
+VISNAB JAR file in that directory.) Start BioFabric, and use <b>File->Set Plugin Directory...</b> to point to the <i>directory</i> where you have placed 
+<code>sVISNAB-V1.0.0.1.jar</code>. Restart BioFabric, and the VISNAB commands will appear in the <b>Tools->Network Alignment</b> menu.
+</b>
 
 <hr noshade="true" width="67%"/>
 <a name="docs"/>
@@ -129,7 +147,7 @@ and the NAVP commands will appear in the <b>Tools->Network Alignment</b> menu.
 More complete documentation is being prepared. 
 </p>
 <p>
-To get started, once the plugin has been installed, NAVP commands can be run from the main <b>Tools->Network Alignment</b> menu. NAVP supports both SIF 
+To get started, once the plugin has been installed, VISNAB commands can be run from the main <b>Tools->Network Alignment</b> menu. VISNAB supports both SIF 
 and LEDA (GW) graph file formats, and the ALIGN file format for alignment files. The graphs must be undirected. 
 </p>
 <p>
@@ -154,7 +172,7 @@ Available commands include:
 <h3>Publications</h3>
 <ul>
 <li>
-Desai, R., Longabaugh, W.J.R., and Hayes, W. <i>BioFabric Visualization of Network Alignments</i> (currently in preparation)
+Desai, R.M., Longabaugh, W.J.R., and Hayes, W.B. <i>BioFabric Visualization of Network Alignments</i> (currently in preparation)
 </li>
 </ul>
 
@@ -162,8 +180,8 @@ Desai, R., Longabaugh, W.J.R., and Hayes, W. <i>BioFabric Visualization of Netwo
 <a name="sourcecode"/>
 <h3>Source Code</h3>
 <p>
-BioFabric source code is available on the <a href="https://github.com/wjrl/BioFabric">BioFabric GitHub</a> project page. BF-NAVP source code is available 
-on the <a href="https://github.com/wjrl/AlignmentPlugin">BF-NAVP GitHub</a> project page.
+BioFabric source code is available on the <a href="https://github.com/wjrl/BioFabric">BioFabric GitHub</a> project page. VISNAB source code is available 
+on the <a href="https://github.com/wjrl/AlignmentPlugin">VISNAB GitHub</a> project page.
 </p>
 
 <hr noshade="true" width="67%"/>
@@ -181,7 +199,7 @@ usability issues, you can send email to:
 <a name="credits"/>
 <h3>Credits</h3>
 <p>
-BF-NAVP was created by Rishi Desai, William Longabaugh, and Wayne Hayes.
+VISNAB was created by Rishi Desai, William Longabaugh, and Wayne Hayes.
 </p>
 
 <hr noshade="true" width="67%"/>
@@ -191,8 +209,7 @@ BF-NAVP was created by Rishi Desai, William Longabaugh, and Wayne Hayes.
 This software is licensed under the GNU Lesser General Public 
 License (LGPL), which is a standard "free software"
 and "open source" license.  A copy of the license agreement 
-is available online <a href="licenses/License.html">here</a>.  Note that
-some of the toolbar icons are distributed under <a href="licenses/LICENSE-SUN.txt">this</a> license.
+is available online <a href="licenses/License.html">here</a>.
 </p>
 <p>
 BioFabric is under continual development, and despite our best efforts 
@@ -206,7 +223,7 @@ and the authors disclaim any liability stemming from the use of this software.
 <hr noshade="true"/>
 
 <p>
-<b>Last updated: September XX, 2018</b>
+<b>Last updated: September 04, 2018</b>
 </p>
 </body>
 </html>

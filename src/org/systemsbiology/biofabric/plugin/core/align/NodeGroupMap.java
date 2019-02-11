@@ -430,7 +430,6 @@ public class NodeGroupMap {
     }
     
   }
-  
 }
 
 //static class JaccardSimilarityFunc {
