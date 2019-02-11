@@ -52,48 +52,11 @@ public class JaccardSimilarity {
   private Map<V1Node, NetNode> v1ToV12Main_, v1ToV12Perfect_;
   private Map<NetNode, V1Node> v12ToV1Main_, v12ToV1Perfect_;
   
-//    private Map<NetNode, Set<NetNode>> nodeToNeighborsMain, nodeToNeighborsPerfect;
-//    private Map<String, NetNode> graph1NodesMain, graph1NodesPerfect;
-  
   ////////////////////////////////////////////////////////////////////////////
   //
   // CONSTRUCTORS
   //
   ////////////////////////////////////////////////////////////////////////////
-  
-//  JaccardSimilarity(Map<NetNode, NetNode> mapG1toG2,
-//                        Map<NetNode, NetNode> perfectG1toG2,
-//                        ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-//                        final Double jaccSimThreshold, BTProgressMonitor monitor)
-//          throws AsynchExitRequestException {
-//    throw (new IllegalStateException());
-//  }
-  
-//  JaccardSimilarity(Map<String, Set<String>> nodeToNeighborsMain,
-//                    Map<String, Set<String>> nodeToNeighborsPerfect,
-//                        Map<String, NetNode> graph1NodesMain,
-//                        Map<String, NetNode> graph1NodesPerfect,
-//                    BTProgressMonitor monitor) {
-//    this.nodeToNeighborsMain_ = nodeToNeighborsMain;
-//    this.v1ToV12Main_ = graph1NodesMain;
-//    this.v12ToV1Main_ = inverseMap(v1ToV12Main_);
-//    this.monitor_ = monitor;
-//    this.nodeToNeighborsPerfect_ = nodeToNeighborsPerfect;
-//    this.v1ToV12Perfect_ = graph1NodesPerfect;
-//    this.v12ToV1Perfect_ = inverseMap(v1ToV12Perfect_);
-//  }
-  
-  JaccardSimilarity(Set<NetLink> allLinksMain, Set<NetNode> loneNodeIDsMain,
-                    NetworkAlignment.NodeColorMap colorMapMain,
-                    Set<NetLink> allLinksPerfect, Set<NetNode> loneNodeIDsPerfect,
-                    NetworkAlignment.NodeColorMap colorMapPerfect,
-                    Map<NetNode, Set<NetNode>> nodeToNeighborsMain,
-                    Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect,
-                    BTProgressMonitor monitor) throws AsynchExitRequestException {
-    this(allLinksMain, loneNodeIDsMain, colorMapMain,
-            allLinksPerfect, loneNodeIDsPerfect, colorMapPerfect,
-            nodeToNeighborsMain, nodeToNeighborsPerfect, null, monitor);
-  }
   
   JaccardSimilarity(Set<NetLink> allLinksMain, Set<NetNode> loneNodeIDsMain,
                     NetworkAlignment.NodeColorMap colorMapMain,
@@ -103,19 +66,18 @@ public class JaccardSimilarity {
                     Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect,
                     final Double jaccSimThreshold,
                     BTProgressMonitor monitor) throws AsynchExitRequestException {
-  
-//    System.out.println(nodeToNeighborsMain);
-//    for (Map.Entry<NetNode, Set<NetNode>> entry : nodeToNeighborsMain.entrySet()) {
-//      System.out.println(entry.getKey().getName() + "    ");
-//    }
+    
+    // Build oracle network
+    
+    
+    
     this.jaccSimThreshold_ = jaccSimThreshold;
-    this.nodeToNeighMain_ = convertToString(nodeToNeighborsMain);
-//    System.out.println(nodeToNeighMain_);
-    this.v1ToV12Main_ = generateGraphOneNodes(allLinksMain, loneNodeIDsMain, colorMapMain);
+    this.nodeToNeighMain_ = convertToString(nodeToNeighborsMain, colorMapMain);
+    this.v1ToV12Main_ = findGraphOneNodes(allLinksMain, loneNodeIDsMain, colorMapMain);
     this.v12ToV1Main_ = inverseMap(v1ToV12Main_);
     this.monitor_ = monitor;
-    this.nodeToNeighPerfect_ = convertToString(nodeToNeighborsPerfect);
-    this.v1ToV12Perfect_ = generateGraphOneNodes(allLinksPerfect, loneNodeIDsPerfect, colorMapPerfect);
+    this.nodeToNeighPerfect_ = convertToString(nodeToNeighborsPerfect, colorMapPerfect);
+    this.v1ToV12Perfect_ = findGraphOneNodes(allLinksPerfect, loneNodeIDsPerfect, colorMapPerfect);
     this.v12ToV1Perfect_ = inverseMap(v1ToV12Perfect_);
     return;
   }
@@ -166,15 +128,7 @@ public class JaccardSimilarity {
    ** Jaccard Similarity Measure - Adapted from NodeEQC.java
    */
   
-  double calcScore(/*Map<NetNode, Set<NetNode>> nodeToNeighborsMain,
-                   Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect,
-                   Map<String, NetNode> v1ToV12Perfect_, BTProgressMonitor monitor*/) {
-    
-//    Map<String, Set<String>> nodeToNeighMainStr = convertToString(nodeToNeighborsMain);
-//    Map<String, Set<String>> nodeToNeighPerfectStr = convertToString(nodeToNeighborsPerfect);
-//
-//    JaccardSimilarity funcJS =
-//            new JaccardSimilarity(nodeToNeighMain_, nodeToNeighPerfect_, graph1NodesMain, graph1NodesPerfect, monitor);
+  double calcScore() {
     
     double totJ = 0.0;
     for (V1Node graph1Node : v1ToV12Main_.keySet()) {
@@ -184,10 +138,6 @@ public class JaccardSimilarity {
       ComboNode node = new ComboNode(nodeEqV12Main.getName()),
               match = new ComboNode(nodeEqV12Perfect.getName());
       Double val = jaccSimValue(node, match);
-//      System.out.println(val);
-//      if (val.isNaN()) {
-//        System.out.println(graph1Node);
-//      }
       totJ += val;
     }
     double measure = totJ / v1ToV12Main_.size();
@@ -205,6 +155,11 @@ public class JaccardSimilarity {
     int lenAdjust = 0;
     HashSet<ComboNode> scratchNode = new HashSet<ComboNode>(nodeToNeighMain_.get(node)),
             scratchMatch = new HashSet<ComboNode>(nodeToNeighPerfect_.get(match));
+  
+    System.out.println(scratchNode);
+    System.out.println(scratchMatch);
+    System.out.println();
+    
     
     if (scratchNode.contains(match)) {
       scratchNode.remove(match);
@@ -235,8 +190,8 @@ public class JaccardSimilarity {
    ** Create map : String -> Graph 1 node (blue or purple)
    */
   
-  private Map<V1Node, NetNode> generateGraphOneNodes(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
-                                                     NetworkAlignment.NodeColorMap colorMap)
+  private Map<V1Node, NetNode> findGraphOneNodes(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
+                                                 NetworkAlignment.NodeColorMap colorMap)
           throws AsynchExitRequestException {
   
     Map<V1Node, NetNode> ret = new HashMap<V1Node, NetNode>();
@@ -268,16 +223,24 @@ public class JaccardSimilarity {
   
   /***************************************************************************
    **
-   **
+   ** Convert Map to String Wrappers
    */
   
-  private Map<ComboNode, Set<ComboNode>> convertToString(Map<NetNode, Set<NetNode>> nodeToNeighbors) {
+  private Map<ComboNode, Set<ComboNode>> convertToString(Map<NetNode, Set<NetNode>> nodeToNeighbors,
+                                                         NetworkAlignment.NodeColorMap colorMap) {
     
     Map<ComboNode, Set<ComboNode>> ret = new HashMap<ComboNode, Set<ComboNode>>();
     
     for (Map.Entry<NetNode, Set<NetNode>> entry : nodeToNeighbors.entrySet()) {
+      NetNode node = entry.getKey();
+//      if (colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
+//        continue;
+//      }
       Set<ComboNode> neighbors = new HashSet<ComboNode>();
       for (NetNode neighbor : entry.getValue()) {
+//        if (colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
+//          continue;
+//        }
         neighbors.add(new ComboNode(neighbor.getName()));
       }
       String name = entry.getKey().getName();
@@ -317,9 +280,34 @@ public class JaccardSimilarity {
   //
   ////////////////////////////////////////////////////////////////////////////
   
+  private static class Greek {
+    
+    private final String name;
+    
+    Greek(String name) {
+      this.name = name;
+    }
+  
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (! (o instanceof Greek)) return false;
+    
+      Greek greek = (Greek) o;
+  
+      return name != null ? name.equals(greek.name) : greek.name == null;
+    }
+  
+    @Override
+    public int hashCode() {
+      return name != null ? name.hashCode() : 0;
+    }
+    
+  }
+  
   /***************************************************************************
    **
-   **
+   ** String Wrapper for Nodes in V1 (A as in "A::B")
    */
   
   private static class V1Node {
@@ -353,7 +341,7 @@ public class JaccardSimilarity {
   
   /***************************************************************************
    **
-   **
+   ** String Wrapper for Nodes in V12 (e.g. "A::B")
    */
   
   private static class ComboNode {
