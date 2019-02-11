@@ -49,6 +49,7 @@ import org.systemsbiology.biofabric.api.model.Network;
 import org.systemsbiology.biofabric.api.parser.AbstractFactoryClient;
 import org.systemsbiology.biofabric.api.parser.GlueStick;
 import org.systemsbiology.biofabric.api.util.ExceptionHandler;
+import org.systemsbiology.biofabric.api.util.NID;
 import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.util.UniqueLabeller;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
@@ -459,11 +460,11 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       																							 reducedLinksPerfect, cacheFile, true, true);
     }
   
-//    if (finished) { // Score Report
-//      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, nodeColorMap, mergedToCorrectNC,
-//              reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect, pendingNetAlignStats_,
-//              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
-//    }
+    if (finished) { // Score Report
+      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, nodeColorMap, mergedToCorrectNC,
+              reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect, pendingNetAlignStats_,
+              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
+    }
    
     if (finished) { // Load the alignments
       

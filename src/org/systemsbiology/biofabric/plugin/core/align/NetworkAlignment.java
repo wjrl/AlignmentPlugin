@@ -1,6 +1,6 @@
 /*
 **
-**    Copyright (C) 2018 Rishi Desai
+**    Copyright (C) 2016-2019 Rishi Desai
 **
 **    Copyright (C) 2003-2018 Institute for Systems Biology
 **                            Seattle, Washington, USA.
@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
@@ -89,6 +88,8 @@ public class NetworkAlignment {
     
   }
   
+  public enum GraphType {SMALL, LARGE}
+  
   ////////////////////////////////////////////////////////////////////////////
   //
   // PRIVATE INSTANCE MEMBERS
@@ -113,9 +114,9 @@ public class NetworkAlignment {
   // largeToMergedID only contains aligned nodes
   //
   
-  private Map<NetNode, NetNode> smallToMergedID_;
-  private Map<NetNode, NetNode> largeToMergedID_;
+  private Map<NetNode, NetNode> smallToMergedID_, largeToMergedID_;
   private Map<NetNode, NetNode> mergedIDToSmall_;
+  private Map<NetNode, NetNode> smallToUnmergedID_, largeToUnmergedID_;
   
   //
   // mergedToCorrect only has aligned nodes
@@ -125,9 +126,6 @@ public class NetworkAlignment {
   private Set<NetNode> mergedLoners_;
   private Map<NetNode, Boolean> mergedToCorrectNC_;
   private NodeColorMap nodeColorMap_;
-  
-  private enum Graph {SMALL, LARGE}
-  
   
   ////////////////////////////////////////////////////////////////////////////
   //
@@ -156,6 +154,9 @@ public class NetworkAlignment {
     this.mergedLoners_ = mergedLoneNodeIDs;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
     this.nodeColorMap_ = nodeColorMap;
+  
+    this.smallToUnmergedID_ = new HashMap<NetNode, NetNode>();
+    this.largeToUnmergedID_ = new HashMap<NetNode, NetNode>();
   }
   
   /****************************************************************************
@@ -166,10 +167,12 @@ public class NetworkAlignment {
   public void mergeNetworks() throws AsynchExitRequestException {
     
     //
-    // Create merged nodes and Correctness
+    // Create merged and unmerged nodes and Correctness
     //
     
     createMergedNodes();
+    createUnmergedNodes(GraphType.SMALL);
+    createUnmergedNodes(GraphType.LARGE);
     
     //
     // Create individual link sets; "old" refers to pre-merged networks, "new" is merged network
@@ -178,12 +181,12 @@ public class NetworkAlignment {
     List<NetLink> newLinksG1 = new ArrayList<NetLink>();
     Set<NetNode> newLonersG1 = new HashSet<NetNode>();
     
-    createNewLinkList(newLinksG1, newLonersG1, Graph.SMALL);
+    createNewLinkList(newLinksG1, newLonersG1, GraphType.SMALL);
     
     List<NetLink> newLinksG2 = new ArrayList<NetLink>();
     Set<NetNode> newLonersG2 = new HashSet<NetNode>();
     
-    createNewLinkList(newLinksG2, newLonersG2, Graph.LARGE);
+    createNewLinkList(newLinksG2, newLonersG2, GraphType.LARGE);
     
     //
     // Give each link its respective link relation
@@ -218,14 +221,14 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   ** Create merged nodes, install into maps
+   ** Create merged nodes (Purple), install into maps; Correctness for Purple nodes
    */
   
   private void createMergedNodes() {
     
-    smallToMergedID_ = new TreeMap<NetNode, NetNode>();
-    largeToMergedID_ = new TreeMap<NetNode, NetNode>();
-    mergedIDToSmall_ = new TreeMap<NetNode, NetNode>();
+    smallToMergedID_ = new HashMap<NetNode, NetNode>();
+    largeToMergedID_ = new HashMap<NetNode, NetNode>();
+    mergedIDToSmall_ = new HashMap<NetNode, NetNode>();
     
     boolean doingPerfectGroup = (outType_ == NetworkAlignmentBuildData.ViewType.GROUP) &&
                                 (perfectG1toG2_ != null);
@@ -254,7 +257,7 @@ public class NetworkAlignment {
       
       if (doingPerfectGroup) { // perfect alignment must be provided
         NetNode perfectLarge = perfectG1toG2_.get(smallNode);
-        boolean alignedCorrect = perfectLarge.equals(largeNode);
+        boolean alignedCorrect = (perfectLarge != null) && perfectLarge.equals(largeNode);
         mergedToCorrectNC_.put(merged_node, alignedCorrect);
       }
     }
@@ -263,28 +266,94 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
+   ** Create unmerged nodes (Blue or Red), install into maps; Correctness for Blue nodes
+   */
+  
+  private void createUnmergedNodes(GraphType type) throws AsynchExitRequestException {
+  
+    boolean doingPerfectGroup = (outType_ == NetworkAlignmentBuildData.ViewType.GROUP) &&
+            (perfectG1toG2_ != null);
+    Map<NetNode, NetNode> oldToUnmerged, oldToMerged;
+    Set<NetNode> nodes;
+    switch (type) {
+      case SMALL:
+        nodes = PluginSupportFactory.getBuildExtractor().extractNodes(linksG1_, lonersG1_, monitor_);
+        oldToMerged = smallToMergedID_;
+        oldToUnmerged = smallToUnmergedID_;
+        break;
+      case LARGE:
+        nodes = PluginSupportFactory.getBuildExtractor().extractNodes(linksG2_, lonersG2_, monitor_);
+        oldToMerged = largeToMergedID_;
+        oldToUnmerged = largeToUnmergedID_;
+        break;
+      default:
+        throw (new IllegalArgumentException("Incorrect graph type"));
+    }
+  
+    for (NetNode node : nodes) {
+      if (oldToMerged.get(node) != null) {
+        continue;
+      }
+      NetNode unalignedName = modifyName(node, type);
+      oldToUnmerged.put(node, unalignedName);
+      
+      // We are dealing with Blue nodes, so if perfect alignment is not aligning
+      // the node either, it is correct
+  
+      if (type == GraphType.SMALL && doingPerfectGroup) { // perfect alignment must be provided
+        NetNode perfectLarge = perfectG1toG2_.get(node);
+        boolean unalignedCorrectly = (perfectLarge == null);
+        mergedToCorrectNC_.put(node, unalignedCorrectly);
+      }
+    }
+    return;
+  }
+  
+  /****************************************************************************
+   **
+   ** Add the accompanying '::' after Blue nodes and before Red nodes
+   */
+  
+  private NetNode modifyName(NetNode node, GraphType type) {
+    
+    NID newID = idGen_.getNextOID();
+    String newName;
+    if (type == NetworkAlignment.GraphType.SMALL) {
+      newName = String.format("%s::", node.getName());  // A:: for blue nodes
+    } else if (type == NetworkAlignment.GraphType.LARGE) {
+      newName = String.format("::%s", node.getName());  // ::B for red nodes
+    } else {
+      throw (new IllegalArgumentException("Incorrect graph type"));
+    }
+    return (PluginSupportFactory.buildNode(newID, newName));
+  }
+  
+  /****************************************************************************
+   **
    ** Create new link lists based on merged nodes for both networks
    */
   
-  private void createNewLinkList(List<NetLink> newLinks, Set<NetNode> newLoners, Graph graph)
+  private void createNewLinkList(List<NetLink> newLinks, Set<NetNode> newLoners, GraphType type)
           throws AsynchExitRequestException {
     
     List<NetLink> oldLinks;
     Set<NetNode> oldLoners;
-    Map<NetNode, NetNode> oldToNewID;
+    Map<NetNode, NetNode> oldToNewMergedID, oldToNewUnmergedID;
     String msg;
     
-    switch (graph) {
+    switch (type) {
       case SMALL:
         oldLinks = linksG1_;
         oldLoners = lonersG1_;
-        oldToNewID = smallToMergedID_;
+        oldToNewMergedID = smallToMergedID_;
+        oldToNewUnmergedID = smallToUnmergedID_;
         msg = "progress.mergingSmallLinks";
         break;
       case LARGE:
         oldLinks = linksG2_;
         oldLoners = lonersG2_;
-        oldToNewID = largeToMergedID_;
+        oldToNewMergedID = largeToMergedID_;
+        oldToNewUnmergedID = largeToUnmergedID_;
         msg = "progress.mergingLargeLinks";
         break;
       default:
@@ -300,11 +369,11 @@ public class NetworkAlignment {
       NetNode oldB = oldLink.getTrgNode();
       
       //
-      // Not all nodes are mapped in the large graph
+      // Not all nodes are mapped in the small or large graph
       //
       
-      NetNode newA = (oldToNewID.containsKey(oldA)) ? oldToNewID.get(oldA) : oldA;
-      NetNode newB = (oldToNewID.containsKey(oldB)) ? oldToNewID.get(oldB) : oldB;
+      NetNode newA = (oldToNewMergedID.containsKey(oldA)) ? oldToNewMergedID.get(oldA) : oldToNewUnmergedID.get(oldA);
+      NetNode newB = (oldToNewMergedID.containsKey(oldB)) ? oldToNewMergedID.get(oldB) : oldToNewUnmergedID.get(oldB);
       
       NetLink newLink = PluginSupportFactory.buildLink(newA, newB, TEMPORARY, false, Boolean.valueOf(false));
       // 'directed' must be false
@@ -316,7 +385,7 @@ public class NetworkAlignment {
     
     for (NetNode oldLoner : oldLoners) {
       
-      NetNode newLoner = (oldToNewID.containsKey(oldLoner)) ? oldToNewID.get(oldLoner) : oldLoner;
+      NetNode newLoner = (oldToNewMergedID.containsKey(oldLoner)) ? oldToNewMergedID.get(oldLoner) : oldToNewUnmergedID.get(oldLoner);
       
       newLoners.add(newLoner);
     }
@@ -378,7 +447,6 @@ public class NetworkAlignment {
         } else {
           addMergedLink(src, trg, EdgeType.FULL_ORPHAN_GRAPH1.tag);
         }
-//        addMergedLink(linkG1.getSrcNode(), linkG1.getTrgNode(), INDUCED_GRAPH1);
       }
       lr.report();
     }
@@ -473,7 +541,7 @@ public class NetworkAlignment {
   
   /****************************************************************************
    **
-   **
+   ** This maps every node in V12 to its color: Blue, Purple, or Red
    */
   
   public static class NodeColorMap {

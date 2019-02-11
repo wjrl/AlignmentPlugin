@@ -464,29 +464,6 @@ public class NetworkAlignmentLayout extends NodeLayout {
           {"(R:0)",             "Green"}
   };
   
-//  public static final String[][] ngAnnotColorsWithoutCorrect = {
-//          {"(P:0)",           "GrayBlue"},
-//          {"(P:P)",           "Orange"},        // FIRST THREE LINK GROUPS
-//          {"(P:B)",           "Yellow"},
-//          {"(P:pRp)",         "Green"},
-//          {"(P:P/B)",         "Purple"},
-//          {"(P:P/pRp)",       "Pink"},
-//          {"(P:B/pRp)",       "PowderBlue"},
-//          {"(P:P/B/pRp)",     "Peach"},
-//          {"(P:pRr)",         "GrayBlue"},      // PURPLE NODES IN LINK GROUP 3
-//          {"(P:P/pRr)",       "Orange"},
-//          {"(P:B/pRr)",       "Yellow"},
-//          {"(P:pRp/pRr)",     "Green"},
-//          {"(P:P/B/pRr)",     "Purple"},
-//          {"(P:P/pRp/pRr)",   "Pink"},
-//          {"(P:B/pRp/pRr)",   "PowderBlue"},
-//          {"(P:P/B/pRp/pRr)", "Peach"},
-//          {"(R:pRr)",         "GrayBlue"},      // RED NODES IN LINK GROUP 5
-//          {"(R:rRr)",         "Orange"},
-//          {"(R:pRr/rRr)",     "Yellow"},
-//          {"(R:0)",           "Green"}
-//  };
-  
   // empty for now
   public static final String[] defaultNGOrderWithCorrect = {};
 
