@@ -36,6 +36,9 @@ import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
+import org.systemsbiology.biofabric.io.BuildExtractorImpl;
+import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
+import sun.plugin2.main.server.Plugin;
 
 
 /****************************************************************************
@@ -65,7 +68,7 @@ public class NetworkAlignmentScorer {
   
   private Set<NetLink> linksMain_, linksPerfect_;
   private Set<NetNode> loneNodeIDsMain_, loneNodeIDsPerfect_;
-  private Map<NetNode, Boolean> isAlignedNodeMain_, isAlignedNodePerfect_;
+  private NetworkAlignment.NodeColorMap nodeColorMapMain_, nodeColorMapPerfect_;
   private Map<NetNode, Boolean> mergedToCorrectNC_;
   
   //
@@ -79,9 +82,15 @@ public class NetworkAlignmentScorer {
   private BTProgressMonitor monitor_;
   private PluginResourceManager rMan_;
   
+  //
+  // Graph 1 Nodes has the original names (A) that maps to Node(A::) and Node(A::B)
+  // It maps the original Graph 1 node name to resulting blue or purple node
+  //
+  
   private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
   private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
   private NodeGroupMap groupMapMain_, groupMapPerfect_;
+//  private Map<String, NetNode> graph1NodesMain_, graph1NodesPerfect_;
   
   //
   // The scores
@@ -97,8 +106,8 @@ public class NetworkAlignmentScorer {
   ////////////////////////////////////////////////////////////////////////////
   
   public NetworkAlignmentScorer(Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
-                                Map<NetNode, Boolean> mergedToCorrectNC, Map<NetNode, Boolean> isAlignedNode,
-                                Map<NetNode, Boolean> isAlignedNodePerfect,
+                                Map<NetNode, Boolean> mergedToCorrectNC,
+                                NetworkAlignment.NodeColorMap nodeColorMap, NetworkAlignment.NodeColorMap nodeColorMapPerfect,
                                 Set<NetLink> linksPerfect, Set<NetNode> loneNodeIDsPerfect,
                                 ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
                                 ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
@@ -107,34 +116,44 @@ public class NetworkAlignmentScorer {
   	rMan_ = rMan;
     this.linksMain_ = new HashSet<NetLink>(reducedLinks);
     this.loneNodeIDsMain_ = new HashSet<NetNode>(loneNodeIDs);
+    this.nodeColorMapMain_ = nodeColorMap;
+    this.nodeColorMapPerfect_ = nodeColorMapPerfect;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
     this.linksPerfect_ = linksPerfect;
     this.loneNodeIDsPerfect_ = loneNodeIDsPerfect;
-    this.isAlignedNodeMain_ = isAlignedNode;
-    this.isAlignedNodePerfect_ = isAlignedNodePerfect;
     this.monitor_ = monitor;
     this.nodeToLinksMain_ = new HashMap<NetNode, Set<NetLink>>();
     this.nodeToNeighborsMain_ = new HashMap<NetNode, Set<NetNode>>();
+//    this.graph1NodesMain_ = new HashMap<String, NetNode>();
     this.nodeToLinksPerfect_ = new HashMap<NetNode, Set<NetLink>>();
     this.nodeToNeighborsPerfect_ = new HashMap<NetNode, Set<NetNode>>();
+//    this.graph1NodesPerfect_ = new HashMap<String, NetNode>();
     this.linksSmall_ = linksSmall;
     this.lonersSmall_ = lonersSmall;
     this.linksLarge_ = linksLarge;
     this.lonersLarge_ = lonersLarge;
     this.mapG1toG2_ = mapG1toG2;
     this.perfectG1toG2_ = perfectG1toG2;
+    // Create Node Group Map to use for NGS/LGS
     this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
-            mergedToCorrectNC, isAlignedNode, NodeGroupMap.PerfectNGMode.NONE, null,
+            mergedToCorrectNC, nodeColorMapMain_, NodeGroupMap.PerfectNGMode.NONE, null,
             NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
     if (mergedToCorrectNC != null) {
-      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, mapG1toG2, perfectG1toG2, linksLarge,
-              lonersLarge, mergedToCorrectNC, isAlignedNodePerfect, NodeGroupMap.PerfectNGMode.NONE, null,
+      // investigate parameters
+      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, perfectG1toG2, null,
+              linksLarge, lonersLarge, null, nodeColorMapPerfect, NodeGroupMap.PerfectNGMode.NONE, null,
               NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
     }
+    
     removeDuplicateAndShadow();
-    generateStructs(reducedLinks, loneNodeIDs, nodeToLinksMain_, nodeToNeighborsMain_);
+    // Generate Structures
+    PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(linksMain_, loneNodeIDsMain_, nodeToNeighborsMain_, nodeToLinksMain_, monitor_);
+//    generateGraphOneNodes(linksMain_, loneNodeIDsMain_, graph1NodesMain_, nodeColorMapMain_);
+  
     if (mergedToCorrectNC != null) {
-      generateStructs(linksPerfect, loneNodeIDsPerfect, nodeToLinksPerfect_, nodeToNeighborsPerfect_);
+      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(linksPerfect_, loneNodeIDsPerfect_,
+              nodeToNeighborsPerfect_, nodeToLinksPerfect_, monitor_);
+//      generateGraphOneNodes(linksPerfect_, loneNodeIDsPerfect_, graph1NodesPerfect_, nodeColorMapPerfect_);
     }
     calcScores();
     finalizeMeasures();
@@ -184,44 +203,25 @@ public class NetworkAlignmentScorer {
     return;
   }
   
-  /****************************************************************************
-   **
-   ** Create structures (node-to-neighbors and node-to-inks
-   */
-  
-  private void generateStructs(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs, Map<NetNode,
-          Set<NetLink>> nodeToLinks_, Map<NetNode, Set<NetNode>> nodeToNeighbors_) throws AsynchExitRequestException {
-    
-    LoopReporter lr = new LoopReporter(allLinks.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
-    for (NetLink link : allLinks) {
-      lr.report();
-      NetNode src = link.getSrcNode(), trg = link.getTrgNode();
-      
-      if (nodeToLinks_.get(src) == null) {
-        nodeToLinks_.put(src, new HashSet<NetLink>());
-      }
-      if (nodeToLinks_.get(trg) == null) {
-        nodeToLinks_.put(trg, new HashSet<NetLink>());
-      }
-      if (nodeToNeighbors_.get(src) == null) {
-        nodeToNeighbors_.put(src, new HashSet<NetNode>());
-      }
-      if (nodeToNeighbors_.get(trg) == null) {
-        nodeToNeighbors_.put(trg, new HashSet<NetNode>());
-      }
-      
-      nodeToLinks_.get(src).add(link);
-      nodeToLinks_.get(trg).add(link);
-      nodeToNeighbors_.get(src).add(trg);
-      nodeToNeighbors_.get(trg).add(src);
-    }
-    
-    for (NetNode node : loneNodeIDs) {
-      nodeToLinks_.put(node, new HashSet<NetLink>());
-      nodeToNeighbors_.put(node, new HashSet<NetNode>());
-    }
-    return;
-  }
+//  /****************************************************************************
+//   **
+//   ** Create map : String -> Graph 1 node (blue or purple)
+//   */
+//
+//  private void generateGraphOneNodes(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
+//                                      Map<String, NetNode> graph1Nodes, NetworkAlignment.NodeColorMap colorMap)
+//          throws AsynchExitRequestException {
+//
+//    Set<NetNode> allNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinks, loneNodeIDs, monitor_);
+//    for (NetNode node : allNodes) {
+//      if (colorMap.getColor(node) == NetworkAlignment.NodeColor.PURPLE ||
+//              colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
+//        String g1name = StringUtilities.separateNodeOne(node.getName());
+//        graph1Nodes.put(g1name, node);
+//      }
+//    }
+//    return;
+//  }
   
   /****************************************************************************
    **
@@ -276,22 +276,22 @@ public class NetworkAlignmentScorer {
   
   private void calcTopologicalMeasures() throws AsynchExitRequestException{
     LoopReporter lr = new LoopReporter(linksMain_.size(), 20, monitor_, 0.0, 1.0, "progress.topologicalMeasures");
-    int numCoveredEdge = 0, numGraph1 = 0, numInducedGraph2 = 0;
+    int numCoveredEdge = 0, numInducedGraph1 = 0, numInducedGraph2 = 0;
     
     for (NetLink link : linksMain_) {
       lr.report();
-      if (link.getRelation().equals(NetworkAlignment.COVERED_EDGE)) {
+      if (link.getRelation().equals(NetworkAlignment.EdgeType.COVERED.tag)) {
         numCoveredEdge++;
-      } else if (link.getRelation().equals(NetworkAlignment.ORPHAN_GRAPH1)) {
-        numGraph1++;
-      } else if (link.getRelation().equals(NetworkAlignment.INDUCED_GRAPH2)) {
+      } else if (link.getRelation().equals(NetworkAlignment.EdgeType.INDUCED_GRAPH1.tag)) {
+        numInducedGraph1++;
+      } else if (link.getRelation().equals(NetworkAlignment.EdgeType.INDUCED_GRAPH2.tag)) {
         numInducedGraph2++;
       }
     }
     
     try {
-      EC = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1);
-      S3 = ((double) numCoveredEdge) / (numCoveredEdge + numGraph1 + numInducedGraph2);
+      EC = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1);
+      S3 = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1 + numInducedGraph2);
       ICS = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph2);
     } catch (ArithmeticException ae) {
       EC = null;
@@ -325,7 +325,14 @@ public class NetworkAlignmentScorer {
   }
   
   private void calcJaccardSimilarity() throws AsynchExitRequestException {
-    this.JaccSim = new JaccardSimilarityMeasure().calcScore(mapG1toG2_, perfectG1toG2_, linksLarge_, lonersLarge_, monitor_);
+//    this.JaccSim = new JaccardSimilarityMeasure().calcScore(mapG1toG2_, perfectG1toG2_, linksLarge_, lonersLarge_, monitor_);
+//    this.JaccSim = new JaccardSimilarityMeasure().calcScore(nodeToNeighborsMain_, nodeToNeighborsPerfect_,graph1NodesMain_, graph1NodesPerfect_, monitor_);
+//    this.JaccSim = (new JaccardSimilarity()).calcScore(nodeToNeighborsMain_, nodeToNeighborsPerfect_,graph1NodesMain_, graph1NodesPerfect_, monitor_);
+//    this.JaccSim = (new JaccardSimilarity(nodeToNeighborsMain_, nodeToNeighborsPerfect_,
+//            graph1NodesMain_, graph1NodesPerfect_, monitor_)).calcScore();
+    this.JaccSim = (new JaccardSimilarity(linksMain_, loneNodeIDsMain_, nodeColorMapMain_,
+            linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, nodeToNeighborsMain_,
+            nodeToNeighborsPerfect_, monitor_)).calcScore();
     return;
   }
   
@@ -534,13 +541,11 @@ public class NetworkAlignmentScorer {
     private VectorND getLGVector(NodeGroupMap groupMap) {
 
       Map<String, Integer> relToIndex = new HashMap<String, Integer>();
-      relToIndex.put(NetworkAlignment.COVERED_EDGE, NodeGroupMap.PURPLE_EDGES);
-      relToIndex.put(NetworkAlignment.ORPHAN_GRAPH1, NodeGroupMap.BLUE_EDGES);
-      relToIndex.put(NetworkAlignment.INDUCED_GRAPH2, NodeGroupMap.RED_EDGES);
-      relToIndex.put(NetworkAlignment.HALF_UNALIGNED_GRAPH2, NodeGroupMap.ORANGE_EDGES);
-      relToIndex.put(NetworkAlignment.FULL_UNALIGNED_GRAPH2, NodeGroupMap.YELLOW_EDGES);
-      
-      VectorND vector = new VectorND(NodeGroupMap.NUMBER_LINK_GROUPS);
+      for (NetworkAlignment.EdgeType type : NetworkAlignment.LINK_GROUPS) {
+        relToIndex.put(type.tag, type.index);
+      }
+
+      VectorND vector = new VectorND(NetworkAlignment.LINK_GROUPS.length);
       Map<String, Double> lgRatios = groupMap.getLinkGroupRatios();
       
       for (Map.Entry<String, Double> entry : lgRatios.entrySet()) {
@@ -553,35 +558,66 @@ public class NetworkAlignmentScorer {
     
   }
   
-  /****************************************************************************
-   **
-   ** Jaccard Similarity Measure - Adapted from NodeEQC.java
-   */
-  
-  private static class JaccardSimilarityMeasure {
-  
-    /***************************************************************************
-     **
-     ** Calculated the score
-     */
-  
-    double calcScore(Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
-                     ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                     BTProgressMonitor monitor) throws AsynchExitRequestException {
-  
-      NodeGroupMap.JaccardSimilarityFunc funcJS =
-              new NodeGroupMap.JaccardSimilarityFunc(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, null, monitor);
-
-      Map<NetNode, NetNode> entrezAlign = funcJS.entrezAlign;
-  
-      double totJ = 0.0;
-      for (NetNode node : entrezAlign.keySet()) {
-        totJ += funcJS.jaccSimValue(node, entrezAlign.get(node));
-      }
-      double measure = totJ / entrezAlign.keySet().size();
-      return (measure);
-    }
-    
-  }
+//  /****************************************************************************
+//   **
+//   ** Jaccard Similarity Measure - Adapted from NodeEQC.java
+//   */
+//
+//  private static class JaccardSimilarityMeasure {
+//
+//    /***************************************************************************
+//     **
+//     ** Calculated the score
+//     */
+//
+//    double calcScore(Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
+//                     ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
+//                     BTProgressMonitor monitor) throws AsynchExitRequestException {
+//
+//      JaccardSimilarity funcJS =
+//              new JaccardSimilarity(mapG1toG2, perfectG1toG2, linksLarge, lonersLarge, null, monitor);
+//
+//      Map<NetNode, NetNode> entrezAlign = funcJS.entrezAlign;
+//
+//      double totJ = 0.0;
+//      for (NetNode node : entrezAlign.keySet()) {
+////        totJ += funcJS.jaccSimValue(node, entrezAlign.get(node));
+//      }
+//      double measure = totJ / entrezAlign.keySet().size();
+//      return (measure);
+//    }
+//
+//    double calcScore(Map<NetNode, Set<NetNode>> nodeToNeighborsMain,
+//                     Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect,
+//                     Map<String, NetNode> graph1NodesMain,
+//                     Map<String, NetNode> graph1NodesPerfect, BTProgressMonitor monitor) {
+//
+//      Map<String, Set<String>> nodeToNeighMainStr = convertToString(nodeToNeighborsMain);
+//      Map<String, Set<String>> nodeToNeighPerfectStr = convertToString(nodeToNeighborsPerfect);
+//
+//      JaccardSimilarity funcJS =
+//              new JaccardSimilarity(nodeToNeighMainStr, nodeToNeighPerfectStr, graph1NodesMain, graph1NodesPerfect, monitor);
+//
+//      System.out.println("TRUTH ASSERT+   " + graph1NodesMain.keySet().equals(graph1NodesPerfect.keySet()));
+//      System.out.println(graph1NodesMain.keySet());
+//      System.out.println(graph1NodesPerfect.keySet());
+//
+//      double totJ = 0.0;
+//      for (String graph1Node : graph1NodesMain.keySet()) {
+//        NetNode nodeEqV12Main = graph1NodesMain.get(graph1Node),
+//                nodeEqV12Perfect = graph1NodesPerfect.get(graph1Node);
+//        Double val = funcJS.jaccSimValue(nodeEqV12Main.getName(), nodeEqV12Perfect.getName());
+//        System.out.println(val);
+//        if (val.isNaN()) {
+//          System.out.println(graph1Node);
+//        }
+//        totJ += val;
+////        totJ += funcJS.jaccSimValue(nodeEqV12Main.getName(), nodeEqV12Perfect.getName());
+//      }
+//      double measure = totJ / graph1NodesMain.size();
+//      return (measure);
+//    }
+//
+//  }
 
 }

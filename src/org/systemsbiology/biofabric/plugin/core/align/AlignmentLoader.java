@@ -118,7 +118,7 @@ public class AlignmentLoader {
 	     
 	      boolean existsInG1 = G1nameToNID.containsKey(strNameG1),
 	              existsInG2 = G2nameToNID.containsKey(strNameG2);
-	  
+      
 	      if (!existsInG1) {
 	        String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.nodeNotFoundG1"), strNameG1);
 	        throw (new IOException(msg));
@@ -143,10 +143,10 @@ public class AlignmentLoader {
 	      }
 	    }
 	  
-	    if (mapG1ToG2.size() != G1nameToNID.size()) {
-	      String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.mapSizeError"), mapG1ToG2.size(), G1nameToNID.size());
-	      throw (new IOException(msg));
-	    }
+//	    if (mapG1ToG2.size() != G1nameToNID.size()) {	// commented out for now - Rishi 11/20/2018
+//	      String msg = MessageFormat.format(rMan_.getPluginString("networkAlignment.mapSizeError"), mapG1ToG2.size(), G1nameToNID.size());
+//	      throw (new IOException(msg));
+//	    }
     } finally {
     	if (in != null) in.close();
     }
