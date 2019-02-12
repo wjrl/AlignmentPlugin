@@ -593,7 +593,7 @@ public class AlignCycleLayout extends NodeLayout {
     for (String smallNode : smallNames) {
       String checkNode = smallNameToLargeNameAlign.get(smallNode);
       if (checkNode == null) {
-        blueNodes.add(PathElem.buildBlueNode(checkNode));
+        blueNodes.add(PathElem.buildBlueNode(smallNode));
       }
       lr7.report();
     }   
@@ -606,7 +606,7 @@ public class AlignCycleLayout extends NodeLayout {
     for (String largeNode : largeNames) {
       String checkNode = largeNameToSmallNameAlign.get(largeNode);
       if (checkNode == null) {
-        redNodes.add(PathElem.buildRedNode(checkNode));
+        redNodes.add(PathElem.buildRedNode(largeNode));
       }
       lr8.report();
     }   
@@ -798,15 +798,17 @@ public class AlignCycleLayout extends NodeLayout {
      HashSet<PathElem> working = new HashSet<PathElem>(nodesToPathElem.values());
      while (!working.isEmpty()) {
        PathElem startElem = working.iterator().next();
+       System.out.println("sE " + startElem);
        working.remove(startElem);
        AlignPath path = new AlignPath();
-       
        pathsPerStart.put(startElem, path);
        path.pathNodes.add(startElem);
        PathElem nextElem = elemToNext.get(startElem);
        // Not every cycle closes itself, so nextElem can == null:
        while (nextElem != null) {
+      	 System.out.println("ne " + nextElem);
          if (nextElem.equals(startElem)) {
+        	 System.out.println("nep " + nextElem);
            path.isCycle = true;
            path.correct = (path.pathNodes.size() == 1);
            break;
@@ -817,7 +819,10 @@ public class AlignCycleLayout extends NodeLayout {
          // bother with then getting the "nextKey", as we have already 
          // traversed that path tail.
          if (existing != null) {
+        	 System.out.println("isC " + existing.isCycle);
+        	 System.out.println("A " + existing.pathNodes);
            path.pathNodes.addAll(existing.pathNodes);
+           System.out.println("B " + path.pathNodes);
            pathsPerStart.remove(nextElem);
            if (working.contains(nextElem)) {
              throw new IllegalStateException();
@@ -827,10 +832,10 @@ public class AlignCycleLayout extends NodeLayout {
            }
            break;
          } else {
+        	 path.pathNodes.add(nextElem);
+        	 working.remove(nextElem);
         	 nextElem = elemToNext.get(nextElem);
-        	 // Go get next key, which may well be null if 
-           path.pathNodes.add(nextElem);
-           working.remove(nextElem);
+           System.out.println("path " + path.pathNodes);     
          }
        }
      }
@@ -1006,6 +1011,9 @@ public class AlignCycleLayout extends NodeLayout {
     }
     
     static PathElem buildBlueNode(String name) {
+    	if (name == null) {
+    		throw new IllegalStateException();
+    	}
       PathElem retval = new PathElem();
       retval.color = NodeColor.BLUE;
       retval.smallNodeName = name;
@@ -1054,7 +1062,22 @@ public class AlignCycleLayout extends NodeLayout {
       	throw new IllegalArgumentException();
       }
     }
-    	   
+    
+    @Override
+    public String toString() {
+    	switch (this.color) {
+	      case RED:
+	      	return (this.color + " node : ::" + largeNodeName);
+	      case BLUE:
+	      	return (this.color + " node : " + smallNodeName + "::");
+	      case PURPLE:
+	      	return (this.color + " node : " + smallNodeName + "::" + largeNodeName);
+        default:
+        	break;   	
+	    }
+    	throw new IllegalStateException();
+    }
+ 
     @Override
     public int hashCode() {
     	int smallCode = (smallNodeName == null) ? 0 : smallNodeName.hashCode();

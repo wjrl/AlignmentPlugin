@@ -38,8 +38,6 @@ import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
 import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
-import sun.plugin2.main.server.Plugin;
-
 
 /****************************************************************************
  **
