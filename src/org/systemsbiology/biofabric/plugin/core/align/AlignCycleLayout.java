@@ -170,6 +170,11 @@ public class AlignCycleLayout extends NodeLayout {
     Map<PathElem, AlignPath> alignPaths = calcAlignPathsV2(maps_, nodesToPathElem, elemToNext, 
     		                                                  smallToElem, largeToElem);
     
+    for (PathElem pek : alignPaths.keySet()) {
+    	AlignPath ap = alignPaths.get(pek);
+    	System.out.println("APK " + pek + " pn: " + ap.pathNodes);
+    }
+    
    // Map<String, AlignPath> alignCorePaths = calcAlignPathCores(maps_);
     //Map<String, AlignPath> alignPaths = augmentAlignPathCores(maps_, alignCorePaths);
     
@@ -205,7 +210,7 @@ public class AlignCycleLayout extends NodeLayout {
     // to itself!
     //
     // We are handed a data structure that points from each aligned node to the alignment cycle it belongs to.
-    // Working with a start node (highest degree or from list), order neighbors by decreasing degree, but instead
+    // Working with a start node (highest degree or from list), order neighbors by decreasing degree, but instead of
     // adding unseen nodes in that order to the queue, we add ALL the nodes in the cycle to the list, in cycle order.
     // If it is a true cycle (i.e. does not terminate in an unaligned node) we can start the cycle at the neighbor. 
     // If it is not a cycle but a path, we need to start at the beginning.
@@ -275,6 +280,7 @@ public class AlignCycleLayout extends NodeLayout {
     //
      
     while (!targsToGo.isEmpty()) {
+    	System.out.println("targsToGo " + targsToGo);
       Iterator<Integer> crit = countRank.keySet().iterator();
       while (crit.hasNext()) {
         Integer key = crit.next();
@@ -282,24 +288,32 @@ public class AlignCycleLayout extends NodeLayout {
         Iterator<NetNode> pcit = perCount.iterator();
         while (pcit.hasNext()) {
           NetNode node = pcit.next();
+          System.out.println("targsToGo " + targsToGo);
+          System.out.println("pcitn " + node);
           if (targsToGo.contains(node)) {
             PathElem nodeKey = nodesToPathElem.get(node);
             AlignPath ac = alignPaths.get(nodeKey);
             ArrayList<NetNode> queue = new ArrayList<NetNode>();
             if (ac == null) {
+            	
               targsToGo.remove(node);
               targets.add(node);
+              System.out.println("acn targsToGo " + targsToGo);
+              System.out.println("acn n " + node);
               queue.add(node); 
             } else {
               List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
               for (PathElem ulnode : unlooped) { 
                 NetNode daNode = pathElemToNode.get(ulnode);
+                System.out.println("targsToGo " + targsToGo);
+                System.out.println("dan " + daNode);
                 targsToGo.remove(daNode);
                 targets.add(daNode);
                 queue.add(daNode);
               }
               NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
               NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
+              System.out.println("cba " + boundsStart + " "  + boundsEnd);
               cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
             }
             flushQueue(targets, targsPerSource, linkCounts, targsToGo, queue, alignPaths, nodesToPathElem,
@@ -331,6 +345,16 @@ public class AlignCycleLayout extends NodeLayout {
     }
     lr2.finish();
     targets.addAll(remains);
+    
+    int i = 0;
+    for (NetNode lnod : targets) {
+    	System.out.println(i++ + " " + lnod);
+    }  
+    
+    
+    
+    
+    
        
     return (targets);
   }
@@ -402,6 +426,7 @@ public class AlignCycleLayout extends NodeLayout {
       Iterator<NetNode> ktpit = myKids.iterator(); 
       while (ktpit.hasNext()) {  
         NetNode kid = ktpit.next();
+        System.out.println("Node " + node + " kid " + kid);
         if (targsToGo.contains(kid)) {
           // here we add the entire cycle containing the kid. If kid is not in a cycle (unaligned), we just add
           // kid. If not a cycle but a path, we add the first kid in the path, then all following kids. If a cycle,
@@ -415,7 +440,10 @@ public class AlignCycleLayout extends NodeLayout {
           	// BLUE NODES SHOULD GO IN HERE AS WELL!
             //
             targsToGo.remove(kid);
+            System.out.println("fqtargsToGo " + targsToGo);
+            System.out.println("kid " + kid);
             targets.add(kid);
+            System.out.println("tak " + targets);
             queue.add(kid);    
           } else {
             targsToGo.removeAll(ac.pathNodes);
@@ -424,6 +452,9 @@ public class AlignCycleLayout extends NodeLayout {
               NetNode daNode = pathElemToNode.get(ulnode);
               targsToGo.remove(daNode);
               targets.add(daNode);
+              System.out.println("fq2targsToGo " + targsToGo);
+              System.out.println("dan " + daNode);
+              System.out.println("tak2 " + targets);
               queue.add(daNode);
             }
             
@@ -840,7 +871,15 @@ public class AlignCycleLayout extends NodeLayout {
        }
      }
      
-     return (pathsPerStart);
+     Map<PathElem, AlignPath> pathsPerEveryNode = new HashMap<PathElem, AlignPath>();
+     for (PathElem keyName : pathsPerStart.keySet()) {
+       AlignPath path = pathsPerStart.get(keyName);
+       for (PathElem nextName : path.pathNodes) {
+         pathsPerEveryNode.put(nextName, path); 
+       }
+     }
+
+     return (pathsPerEveryNode);
    }
   
   
