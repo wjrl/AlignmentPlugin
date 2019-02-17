@@ -296,8 +296,8 @@ public class NetworkAlignmentScorer {
   
   private void calcJaccardSimilarity() throws AsynchExitRequestException {
     this.JaccSim = (new JaccardSimilarity(linksMain_, loneNodeIDsMain_, nodeColorMapMain_,
-            linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, nodeToNeighborsMain_,
-            nodeToNeighborsPerfect_, null, monitor_)).calcScore();
+            linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, nodeToNeighborsMain_, nodeToLinksMain_,
+            nodeToNeighborsPerfect_, nodeToLinksPerfect_, null, monitor_)).calcScore();
     return;
   }
   
