@@ -76,6 +76,10 @@ public class AlignCycleLayout extends NodeLayout {
   //
   ////////////////////////////////////////////////////////////////////////////
 
+  //
+  // December 2018: Need to investigate how to incorporate blue nodes!
+  //
+  
   /***************************************************************************
   **
   ** Find out if the necessary conditions for this layout are met. For this layout, we either
@@ -156,9 +160,24 @@ public class AlignCycleLayout extends NodeLayout {
     }
     
     Set<NetNode> allNodes = genAllNodes(rbd);
-    Map<NetNode, String> nodesToPathElem = genNodeToPathElem(allNodes);
-    Map<String, NetNode> pathElemToNode = genPathElemToNode(allNodes); 
-    Map<String, AlignPath> alignPaths = calcAlignPaths(maps_);
+    Map<NetNode, PathElem> nodesToPathElem = genNodeToPathElem(allNodes);
+    Map<PathElem, NetNode> pathElemToNode = genPathElemToNode(allNodes);
+    Map<String, PathElem> smallToElem = new HashMap<String, PathElem>();
+    Map<String, PathElem> largeToElem = new HashMap<String, PathElem>();
+    Map<PathElem, PathElem> elemToNext = new HashMap<PathElem, PathElem>();
+    genNamesToPathElem(maps_, nodesToPathElem, smallToElem, largeToElem, elemToNext); 
+ 
+    Map<PathElem, AlignPath> alignPaths = calcAlignPathsV2(maps_, nodesToPathElem, elemToNext, 
+    		                                                  smallToElem, largeToElem);
+    
+    for (PathElem pek : alignPaths.keySet()) {
+    	AlignPath ap = alignPaths.get(pek);
+    	System.out.println("APK " + pek + " pn: " + ap.pathNodes);
+    }
+    
+   // Map<String, AlignPath> alignCorePaths = calcAlignPathCores(maps_);
+    //Map<String, AlignPath> alignPaths = augmentAlignPathCores(maps_, alignCorePaths);
+    
     List<CycleBounds> cycleBounds = new ArrayList<CycleBounds>();
         
     List<NetNode> targetIDs = alignPathNodeOrder(rbd.getLinks(), rbd.getSingletonNodes(), 
@@ -177,13 +196,13 @@ public class AlignCycleLayout extends NodeLayout {
   */
 
   private List<NetNode> alignPathNodeOrder(Set<NetLink> allLinks,
-  		                                          Set<NetNode> loneNodes, 
-  		                                          List<NetNode> startNodes,
-  		                                          Map<String, AlignPath> alignPaths,
-  		                                          Map<NetNode, String> nodesToPathElem,
-  		                                          Map<String, NetNode> pathElemToNode,
-  		                                          List<CycleBounds> cycleBounds,
-  		                                          BTProgressMonitor monitor) throws AsynchExitRequestException { 
+  		                                     Set<NetNode> loneNodes, 
+  		                                     List<NetNode> startNodes,
+  		                                     Map<PathElem, AlignPath> alignPaths,
+  		                                     Map<NetNode, PathElem> nodesToPathElem,
+  		                                     Map<PathElem, NetNode> pathElemToNode,
+  		                                     List<CycleBounds> cycleBounds,
+  		                                     BTProgressMonitor monitor) throws AsynchExitRequestException { 
     //
     // Note the allLinks Set has pruned out duplicates and synonymous non-directional links
     //
@@ -191,14 +210,12 @@ public class AlignCycleLayout extends NodeLayout {
     // to itself!
     //
     // We are handed a data structure that points from each aligned node to the alignment cycle it belongs to.
-    // Working with a start node (highest degree or from list), order neighbors by decreasing degree, but instead
+    // Working with a start node (highest degree or from list), order neighbors by decreasing degree, but instead of
     // adding unseen nodes in that order to the queue, we add ALL the nodes in the cycle to the list, in cycle order.
     // If it is a true cycle (i.e. does not terminate in an unaligned node) we can start the cycle at the neighbor. 
     // If it is not a cycle but a path, we need to start at the beginning.
     //
-    // PLUS, since the start node of a path is unaligned, the unaligned node gets stuck at the front,
-    
-    // 
+  
     
     HashMap<NetNode, Integer> linkCounts = new HashMap<NetNode, Integer>();
     HashMap<NetNode, Set<NetNode>> targsPerSource = new HashMap<NetNode, Set<NetNode>>();
@@ -263,6 +280,7 @@ public class AlignCycleLayout extends NodeLayout {
     //
      
     while (!targsToGo.isEmpty()) {
+    	System.out.println("targsToGo " + targsToGo);
       Iterator<Integer> crit = countRank.keySet().iterator();
       while (crit.hasNext()) {
         Integer key = crit.next();
@@ -270,24 +288,32 @@ public class AlignCycleLayout extends NodeLayout {
         Iterator<NetNode> pcit = perCount.iterator();
         while (pcit.hasNext()) {
           NetNode node = pcit.next();
+          System.out.println("targsToGo " + targsToGo);
+          System.out.println("pcitn " + node);
           if (targsToGo.contains(node)) {
-            String nodeKey = nodesToPathElem.get(node);
+            PathElem nodeKey = nodesToPathElem.get(node);
             AlignPath ac = alignPaths.get(nodeKey);
             ArrayList<NetNode> queue = new ArrayList<NetNode>();
             if (ac == null) {
+            	
               targsToGo.remove(node);
               targets.add(node);
+              System.out.println("acn targsToGo " + targsToGo);
+              System.out.println("acn n " + node);
               queue.add(node); 
             } else {
-              List<String> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
-              for (String ulnode : unlooped) { 
+              List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
+              for (PathElem ulnode : unlooped) { 
                 NetNode daNode = pathElemToNode.get(ulnode);
+                System.out.println("targsToGo " + targsToGo);
+                System.out.println("dan " + daNode);
                 targsToGo.remove(daNode);
                 targets.add(daNode);
                 queue.add(daNode);
               }
               NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
               NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
+              System.out.println("cba " + boundsStart + " "  + boundsEnd);
               cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
             }
             flushQueue(targets, targsPerSource, linkCounts, targsToGo, queue, alignPaths, nodesToPathElem,
@@ -319,6 +345,16 @@ public class AlignCycleLayout extends NodeLayout {
     }
     lr2.finish();
     targets.addAll(remains);
+    
+    int i = 0;
+    for (NetNode lnod : targets) {
+    	System.out.println(i++ + " " + lnod);
+    }  
+    
+    
+    
+    
+    
        
     return (targets);
   }
@@ -372,9 +408,9 @@ public class AlignCycleLayout extends NodeLayout {
   		                    Map<NetNode, Set<NetNode>> targsPerSource, 
                           Map<NetNode, Integer> linkCounts, 
                           Set<NetNode> targsToGo, List<NetNode> queue,
-                          Map<String, AlignPath> alignPaths,
-                          Map<NetNode, String> nodesToPathElem,
-                          Map<String, NetNode> pathElemToNode,
+                          Map<PathElem, AlignPath> alignPaths,
+                          Map<NetNode, PathElem> nodesToPathElem,
+                          Map<PathElem, NetNode> pathElemToNode,
                           List<CycleBounds> cycleBounds,
                           BTProgressMonitor monitor, double startFrac, double endFrac) 
                             throws AsynchExitRequestException {
@@ -390,24 +426,35 @@ public class AlignCycleLayout extends NodeLayout {
       Iterator<NetNode> ktpit = myKids.iterator(); 
       while (ktpit.hasNext()) {  
         NetNode kid = ktpit.next();
+        System.out.println("Node " + node + " kid " + kid);
         if (targsToGo.contains(kid)) {
           // here we add the entire cycle containing the kid. If kid is not in a cycle (unaligned), we just add
           // kid. If not a cycle but a path, we add the first kid in the path, then all following kids. If a cycle,
           // we start with the kid, and loop back around to the kid in front of us.
           // nodesToPathElem is of form NetNode(G1:G2) -> "G1"
-          String kidKey = nodesToPathElem.get(kid);
+          PathElem kidKey = nodesToPathElem.get(kid);
           AlignPath ac = alignPaths.get(kidKey);
           if (ac == null) {
+          	//
+            // THIS IS WHERE NON-PATH RED NODES HAVE ALWAYS BEEN ADDED!
+          	// BLUE NODES SHOULD GO IN HERE AS WELL!
+            //
             targsToGo.remove(kid);
+            System.out.println("fqtargsToGo " + targsToGo);
+            System.out.println("kid " + kid);
             targets.add(kid);
+            System.out.println("tak " + targets);
             queue.add(kid);    
           } else {
             targsToGo.removeAll(ac.pathNodes);
-            List<String> unlooped = ac.getReorderedKidsStartingAtKidOrStart(kidKey);
-            for (String ulnode : unlooped) { 
+            List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(kidKey);
+            for (PathElem ulnode : unlooped) { 
               NetNode daNode = pathElemToNode.get(ulnode);
               targsToGo.remove(daNode);
               targets.add(daNode);
+              System.out.println("fq2targsToGo " + targsToGo);
+              System.out.println("dan " + daNode);
+              System.out.println("tak2 " + targets);
               queue.add(daNode);
             }
             
@@ -437,7 +484,8 @@ public class AlignCycleLayout extends NodeLayout {
                                      BTProgressMonitor monitor)  throws AsynchExitRequestException {
     
     //
-    // Build sets of names. If the names are not unique, this layout cannot proceed.
+    // Build sets of names. If the *names* are not unique, this layout cannot proceed. (Remembering that
+  	// we can have distinct nodes with the same name but different node IDs.)
     //
     
     LoopReporter lr = new LoopReporter(align.size(), 20, monitor, 0.0, 1.00, "progress.normalizeAlignMapA");
@@ -469,12 +517,13 @@ public class AlignCycleLayout extends NodeLayout {
     lr2.finish();
     
     //
-    // Reminder: a map takes elements in range and spits out values in the domain.
-    // Alignment map A takes all the nodes in smallNodes set S into some subset of the nodes 
-    // in largeNodes set L. To do the cycle layout, we need to have some inverse map F from L to S such 
-    // the domain of F is a subset of L, and the range of F completely covers S. If the nodes are in the
-    // same namespace, the identity map on the elements of L is sufficient. If not, the inverse of the
-    // perfect alignment map does the trick. Check first if the identity map can work.
+    // Reminder: a map takes elements in domain and spits out values in the range.
+    // Alignment map A takes some of the nodes in smallNodes set S, and specifically ALL of the
+    // purple nodes in S, into a subset of the nodes in largeNodes set L. To do the cycle layout, we 
+    // need to have some inverse map F from L to S such the domain of F is a subset of L, and the range 
+    // of F completely covers the subset of S that are purple nodes. If the nodes are in the same namespace, 
+    // the identity map on the elements of L is sufficient. If not, the inverse of the perfect alignment map 
+    // does the trick. Check first if the identity map can work.
     //
     
     LoopReporter lr3 = new LoopReporter(allLargerNodes.size(), 20, monitor, 0.0, 1.00, "progress.identityMapCheckA");
@@ -482,7 +531,7 @@ public class AlignCycleLayout extends NodeLayout {
     HashSet<String> largeNames = new HashSet<String>();
     for (NetNode large : allLargerNodes) {
       if (largeNames.contains(large.getName())) {
-      	 lr3.finish();
+      	lr3.finish();
         return (null); 
       }
       largeNames.add(large.getName());
@@ -503,7 +552,12 @@ public class AlignCycleLayout extends NodeLayout {
     }
     lr4.finish();
     
-    boolean identityOK = largeNames.containsAll(smallNames);
+    //
+    // Before blue nodes came along, it was enough to check that "largeNames.containsAll(smallNames)". But
+    // it is sufficient for largeNames to cover the purple nodes, i.e. the keySet:
+    //
+    
+    boolean identityOK = largeNames.containsAll(keyNames);
  
     // 
     // If identity map does not work, we need to build maps from the perfect alignment:
@@ -520,7 +574,12 @@ public class AlignCycleLayout extends NodeLayout {
       correctMap = new HashMap<String, String>();
       
       LoopReporter lr5 = new LoopReporter(perfectAlign.size(), 20, monitor, 0.0, 1.00, "progress.namespaceMapBuilding");
-         
+      
+      //
+      // Again, with allowing blue nodes, we are OK with just covering the purple nodes in the smaller network, not
+      // all the nodes in the smaller network. Inverting the perfect alignment does this.
+      //
+      
       for (NetNode key : perfectAlign.keySet()) {
         NetNode val = perfectAlign.get(key);
         backMap.put(val.getName(), key.getName());
@@ -532,20 +591,61 @@ public class AlignCycleLayout extends NodeLayout {
     
     LoopReporter lr6 = new LoopReporter(align.size(), 20, monitor, 0.0, 1.00, "progress.buildTheMap");
     
-    Map<String, String> nameToName = new HashMap<String, String>();
+    Map<String, String> smallNameToLargeNameAlign = new HashMap<String, String>();
+    Map<String, String> largeNameToSmallNameAlign = new HashMap<String, String>();
      
     for (NetNode key : align.keySet()) {
-       NetNode matchNode = align.get(key);
-       // Gotta be unique:
-       if (nameToName.containsKey(key)) {
-         throw new IllegalStateException();
-       }
-       nameToName.put(key.getName(), matchNode.getName());
-       lr6.report();
-     }   
-     lr6.finish();
+      NetNode matchNode = align.get(key);
+      // Gotta be unique:
+      if (smallNameToLargeNameAlign.containsKey(key)) {
+        throw new IllegalStateException();
+      }
+      if (largeNameToSmallNameAlign.containsKey(matchNode)) {
+        throw new IllegalStateException();
+      }
+      smallNameToLargeNameAlign.put(key.getName(), matchNode.getName());
+      largeNameToSmallNameAlign.put(matchNode.getName(), key.getName());
+      lr6.report();
+    }   
+    lr6.finish();
      
-     return (new NodeMaps(nameToName, backMap, correctMap));
+    //
+    // With blue nodes, we have nine possible cases, with red nodes starting paths and
+    // blue nodes terminating paths. Let's collect them up.
+    //
+    
+    LoopReporter lr7 = new LoopReporter(smallNames.size(), 20, monitor, 0.0, 1.00, "progress.blueNodeGroup");
+    
+    HashSet<PathElem> blueNodes = new HashSet<PathElem>();
+     
+    //
+    // Blue nodes show up in the smaller network, but do not appear in the alignment map
+    //
+    for (String smallNode : smallNames) {
+      String checkNode = smallNameToLargeNameAlign.get(smallNode);
+      if (checkNode == null) {
+        blueNodes.add(PathElem.buildBlueNode(smallNode));
+      }
+      lr7.report();
+    }   
+    lr7.finish();
+     
+    LoopReporter lr8 = new LoopReporter(largeNames.size(), 20, monitor, 0.0, 1.00, "progress.redNodeGroup");
+    
+    HashSet<PathElem> redNodes = new HashSet<PathElem>();
+     
+    for (String largeNode : largeNames) {
+      String checkNode = largeNameToSmallNameAlign.get(largeNode);
+      if (checkNode == null) {
+        redNodes.add(PathElem.buildRedNode(largeNode));
+      }
+      lr8.report();
+    }   
+    lr8.finish();
+    
+    HashMap<String, PathElem> smallNameToNode = new HashMap<String, PathElem>();
+
+    return (new NodeMaps(smallNameToLargeNameAlign, backMap, correctMap, blueNodes, redNodes));
   } 
   
   /***************************************************************************
@@ -568,40 +668,65 @@ public class AlignCycleLayout extends NodeLayout {
   /***************************************************************************
   **
   ** Get map from network NetNode (of form G1::G2) to path elem (G1)
+  ** With handling of blue nodes, nodes names of the form A:: and ::B are
+  ** possible.
   */
   
-  private Map<NetNode, String> genNodeToPathElem(Set<NetNode> allNodes) { 
+  private Map<NetNode, PathElem> genNodeToPathElem(Set<NetNode> allNodes) { 
 
-     Map<NetNode, String> n2pe = new HashMap<NetNode, String>();
-     
-     for (NetNode key : allNodes) {
-       String[] toks = key.getName().split("::");
-       if (toks.length == 2) {
-         n2pe.put(key, toks[0]);
-       } else {
-         n2pe.put(key, key.getName());
-       }
+     Map<NetNode, PathElem> n2pe = new HashMap<NetNode, PathElem>();
+     for (NetNode key : allNodes) {	 
+       PathElem elem = new PathElem(key);
+       n2pe.put(key, elem);
      }
      return (n2pe);
    } 
   
+  /***************************************************************************
+  **
+  ** Fill in maps taking small or large net node names to PathElems
+  */
   
+  private void genNamesToPathElem(NodeMaps maps,
+  		                            Map<NetNode, PathElem> elemMap,   
+  		                            Map<String, PathElem> smallToElem,
+                                  Map<String, PathElem> largeToElem,
+                                  Map<PathElem, PathElem> elemToNext) { 
+
+     for (NetNode key : elemMap.keySet()) {	 
+       PathElem elem = elemMap.get(key);
+       if (elem.color != PathElem.NodeColor.RED) {
+         smallToElem.put(elem.smallNodeName, elem);
+       }
+       if (elem.color != PathElem.NodeColor.BLUE) {
+         largeToElem.put(elem.largeNodeName, elem);
+       }
+     }
+     
+     for (NetNode key : elemMap.keySet()) {	 
+       PathElem elem = elemMap.get(key);
+       if (elem.color != PathElem.NodeColor.BLUE) {
+         String nextSmallKey = (maps.backMap != null) ? maps.backMap.get(elem.largeNodeName) : elem.largeNodeName;
+         if (nextSmallKey != null) {
+           elemToNext.put(elem, smallToElem.get(nextSmallKey));
+         }
+       }  
+     } 
+     return;
+   } 
+
   /***************************************************************************
   **
   ** Inverse of above
   */
   
-  private Map<String, NetNode> genPathElemToNode(Set<NetNode> allNodes) { 
+  private Map<PathElem, NetNode> genPathElemToNode(Set<NetNode> allNodes) { 
 
-    Map<String, NetNode> pe2n = new HashMap<String, NetNode>();
+    Map<PathElem, NetNode> pe2n = new HashMap<PathElem, NetNode>();
     
     for (NetNode key : allNodes) {
-      String[] toks = key.getName().split("::");
-      if (toks.length == 2) {
-        pe2n.put(toks[0], key);
-      } else {
-        pe2n.put(key.getName(), key);
-      }
+    	PathElem elem = new PathElem(key);
+      pe2n.put(elem, key);
     }
     return (pe2n);
   } 
@@ -619,18 +744,26 @@ public class AlignCycleLayout extends NodeLayout {
   ** be unmarked if it is correct, but marked if is incorrect.
   */
   
-  private Map<String, AlignPath> calcAlignPaths(NodeMaps align) { 
+  private Map<String, AlignPath> calcAlignPathCores(NodeMaps align) { 
 
      Map<String, AlignPath> pathsPerStart = new HashMap<String, AlignPath>();
      
+     //
+     // Note that we are iterating over the alignment keys, so this is ONLY working
+     // with purple nodes!
+     //
+     
      HashSet<String> working = new HashSet<String>(align.normalMap.keySet());
      while (!working.isEmpty()) {
+    	 // start key in small net namespace....
        String startKey = working.iterator().next();
        working.remove(startKey);
        AlignPath path = new AlignPath();
-       pathsPerStart.put(startKey, path);
-       path.pathNodes.add(startKey);
+       // next key in large net namespace....
        String nextKey = align.normalMap.get(startKey);
+       PathElem nextElem = PathElem.buildPurpleNode(startKey, nextKey);
+       pathsPerStart.put(startKey, path);
+       path.pathNodes.add(nextElem);
        // Not every cycle closes itself, so nextKey can == null:
        while (nextKey != null) {
          // Back map is used when the two networks have different node namespaces...
@@ -661,47 +794,210 @@ public class AlignCycleLayout extends NodeLayout {
            }
            break;
          } else {
-           path.pathNodes.add(nextKey);
+        	 // Go get next key, which may well be null if 
+        	 String nextNextKey = align.normalMap.get(nextKey);
+        	 nextElem = (nextNextKey == null) ? PathElem.buildBlueNode(nextKey) : PathElem.buildPurpleNode(nextKey, nextNextKey);
+           path.pathNodes.add(nextElem);
            working.remove(nextKey);
-           // Go set next key, which may well be null, i.e. we deadend.
-           nextKey = align.normalMap.get(nextKey);
+           nextKey = nextNextKey;
          }
        }
      }
      
+     return (pathsPerStart);
+   }
+  
+  /***************************************************************************
+  **
+  ** Extract the paths in the alignment network.
+  ** We have two orthogonal issues: 1) are nodes in same namespace, and 2) are there more
+  ** nodes in the larger network? With different namespaces, we need a reverse map. If the
+  ** larger network has more nodes, there might not be a reverse mapping, so not every path
+  ** will be a cycle. Note that while A->A is an obvious correct match, A->1234 is not so
+  ** clear. A->B B->A is a swap that needs to be annotated as a cycle, but A->B should obviously
+  ** also be marked as a path if B is in the larger net and not aligned. Similarly, A->1234 should
+  ** be unmarked if it is correct, but marked if is incorrect.
+  */
+  
+  private Map<PathElem, AlignPath> calcAlignPathsV2(NodeMaps align, Map<NetNode, PathElem> nodesToPathElem,
+  																									Map<PathElem, PathElem> elemToNext,
+  																									Map<String, PathElem> smallToElem,
+  																									Map<String, PathElem> largeToElem) { 
+
+     Map<PathElem, AlignPath> pathsPerStart = new HashMap<PathElem, AlignPath>();
+     
+     HashSet<PathElem> working = new HashSet<PathElem>(nodesToPathElem.values());
+     while (!working.isEmpty()) {
+       PathElem startElem = working.iterator().next();
+       System.out.println("sE " + startElem);
+       working.remove(startElem);
+       AlignPath path = new AlignPath();
+       pathsPerStart.put(startElem, path);
+       path.pathNodes.add(startElem);
+       PathElem nextElem = elemToNext.get(startElem);
+       // Not every cycle closes itself, so nextElem can == null:
+       while (nextElem != null) {
+      	 System.out.println("ne " + nextElem);
+         if (nextElem.equals(startElem)) {
+        	 System.out.println("nep " + nextElem);
+           path.isCycle = true;
+           path.correct = (path.pathNodes.size() == 1);
+           break;
+         }
+         AlignPath existing = pathsPerStart.get(nextElem);
+         // If there is an existing path for the next key, we just glue that
+         // existing path onto the end of this new path head. Note we do not
+         // bother with then getting the "nextKey", as we have already 
+         // traversed that path tail.
+         if (existing != null) {
+        	 System.out.println("isC " + existing.isCycle);
+        	 System.out.println("A " + existing.pathNodes);
+           path.pathNodes.addAll(existing.pathNodes);
+           System.out.println("B " + path.pathNodes);
+           pathsPerStart.remove(nextElem);
+           if (working.contains(nextElem)) {
+             throw new IllegalStateException();
+           }
+           if (existing.isCycle) {
+             throw new IllegalStateException();
+           }
+           break;
+         } else {
+        	 path.pathNodes.add(nextElem);
+        	 working.remove(nextElem);
+        	 nextElem = elemToNext.get(nextElem);
+           System.out.println("path " + path.pathNodes);     
+         }
+       }
+     }
+     
+     Map<PathElem, AlignPath> pathsPerEveryNode = new HashMap<PathElem, AlignPath>();
+     for (PathElem keyName : pathsPerStart.keySet()) {
+       AlignPath path = pathsPerStart.get(keyName);
+       for (PathElem nextName : path.pathNodes) {
+         pathsPerEveryNode.put(nextName, path); 
+       }
+     }
+
+     return (pathsPerEveryNode);
+   }
+  
+  
+  
+
+  /***************************************************************************
+  **
+  ** With the consideration of blue nodes, what used to be four cases has expanded to nine.
+  **
+  ** Case 1: Correctly unaligned single blue node: (A->null)
+  ** Case 2: Correctly unaligned single red node: (null->1) (also in no-blue cases)
+  ** Case 3: Correctly aligned single node purple cycle: (B->2) (also in no-blue cases)
+  ** Case 4: Incorrect purple node singleton path: (C->3), but truth is (C->null, null->3)
+  ** Case 5: Incorrect two node (red,blue) path: (null->4, D->null) but truth is (4->D)
+  ** Case 6: Incorrect 1+n node (red, n*purple) path: purple run starting with a red (also in no-blue cases)
+  ** Case 7: Incorrect 1+n node (n*purple, blue) path: purple run ending with a blue
+  ** Case 8: Incorrect 2+n node (red, n*purple, blue) path: purple run starting with a red, ending with a blue
+  ** Case 9: Incorrect 1+n node (n*purple) cycle: purple cycle (also in no-blue cases)
+  **
+  ** The previous call created the purple runs and cycles. Now we need to glue on red and blue nodes at the end
+
+  
+  private Map<String, AlignPath> augmentAlignPathCores(NodeMaps align, Map<String, AlignPath> corePaths) { 
+
+    
      //
      // For each AlignPath, if it is not a cycle, we look for the unaligned node corresponding to the first
-     // element of the path, and glue it on the front.
+     // element of the path, and glue it on the front. (Blue Node Case 6)
      //
      
-     Map<String, AlignPath> completePathsPerStart = new HashMap<String, AlignPath>();
-     for (String start : pathsPerStart.keySet()) {
-       AlignPath apfs = pathsPerStart.get(start);
+     Map<PathElem, AlignPath> completePathsPerStart = new HashMap<PathElem, AlignPath>();
+     for (PathElem start : corePaths.keySet()) {
+       AlignPath apfs = corePaths.get(start);
+       //
+       // Cycle is case 3 (one correct node) or case 9 (multiple misaligned nodes). We are done!
+       //
        if (apfs.isCycle) {
          completePathsPerStart.put(start, apfs);
          continue;
        }
-       String unaligned = (align.correctMap == null) ? start : align.correctMap.get(start);
-       List<String> replace = new ArrayList<String>();
-       replace.add(unaligned);
+ 
+       //
+       // Do we need to glue a red node on the front (case 6)? A blue node on the end (case 7)?
+       // Both a red node on the front and a blue node on the end (case 8)? 
+       //
+       // We run the first node in the path through the perfect alignment to find the red node that it 
+       // *correctly* matches; that red node is the first node in the path. (This is the same thing we
+       // did before blue nodes became a thing.)
+       //
+       // Tacking on blue nodes to the end is more involved, since we do not retain the large-net node
+       // ID in the path. So, to do blue nodes, we:
+       // 1) Take the last node, run it through the normalMap to find the larger net node
+       // 2) Run the larger net node backwards through backMap to see if is is supposed to map to a smaller net node
+       // 3) If it does, we see if that smaller net node is a blue node. If it is, we tack that node on.
+       // If it does, we tack that on the end of the path.
+       
+       // Red node at start:
+       
+       PathElem pathStart = apfs.pathNodes.get(0);
+       PathElem redStart = (align.correctMap == null) ? pathStart : align.correctMap.get(pathStart);
+       
+       // Blue node at end:
+       
+       PathElem pathEnd = apfs.pathNodes.get(apfs.pathNodes.size() - 1);
+       PathElem pathEndAligned = align.normalMap.get(pathEnd);
+       PathElem unalignedEnd = (align.backMap == null) ? pathEndAligned : align.backMap.get(pathEndAligned);
+       PathElem blueEnd = ((unalignedEnd != null) && align.blueNodes.contains(unalignedEnd)) ? unalignedEnd : null;
+      	 
+       // This handles cases 6, 7, and 8. Also handles case 4, since a single node path that gets
+       // nothing tacked on will pass through here as well.
+       List<PathElem> replace = new ArrayList<PathElem>();
+       if (redStart != null) {
+         replace.add(redStart);
+       }
        replace.addAll(apfs.pathNodes);
+       if (blueEnd != null) {
+      	 UiUtil.fixMePrintout("BLUE NODE NOT IN PATH NAMESPACE!!");
+         replace.add(blueEnd);
+       }   
        apfs.pathNodes.clear();
        apfs.pathNodes.addAll(replace);
-       completePathsPerStart.put(unaligned, apfs);       
+       completePathsPerStart.put(apfs.pathNodes.get(0), apfs);       
      }
-
-     Map<String, AlignPath> pathsPerEveryNode = new HashMap<String, AlignPath>();
-     for (String keyName : completePathsPerStart.keySet()) {
+     
+     Map<PathElem, AlignPath> pathsPerEveryNode = new HashMap<PathElem, AlignPath>();
+     for (PathElem keyName : completePathsPerStart.keySet()) {
        AlignPath path = completePathsPerStart.get(keyName);
-       for (String nextName : path.pathNodes) {
+       for (PathElem nextName : path.pathNodes) {
          pathsPerEveryNode.put(nextName, path); 
        }
      }
+     
+     //
+     // Note that cases 1 and 2 (single blue or red) do not have a path created,
+     // and will be glued on in the layout step directly.
+     //
+     // This leaves us with case 5, where we need to create a red to blue path without any
+     // purple nodes in between. If a red node passed through backMap is non-null, and that
+     // is a blue node, we have a case 5 path:
+     //
+     
+     for (PathElem redNode : align.redNodes) {
+    	 PathElem maybeBlue = (align.backMap == null) ? redNode : align.backMap.get(redNode);
+       PathElem blueEnd = ((maybeBlue != null) && align.blueNodes.contains(maybeBlue)) ? maybeBlue : null;
+       if (blueEnd != null) {
+      	 UiUtil.fixMePrintout("BLUE NODE NOT IN PATH NAMESPACE!!");
+      	 AlignPath apfs = new AlignPath();
+         apfs.pathNodes.add(redNode);
+         apfs.pathNodes.add(blueEnd);
+         for (PathElem nextName : apfs.pathNodes) {
+           pathsPerEveryNode.put(nextName, apfs); 
+         }
+       }
+     }
+         
      return (pathsPerEveryNode);
    }
 
-
-  
   /***************************************************************************
   **
   ** For passing around layout path
@@ -709,22 +1005,22 @@ public class AlignCycleLayout extends NodeLayout {
   
   private static class AlignPath  {
         
-    List<String> pathNodes;
+    List<PathElem> pathNodes;
     boolean isCycle;
     boolean correct;
 
     AlignPath() {
-      pathNodes = new ArrayList<String>();
+      pathNodes = new ArrayList<PathElem>();
       isCycle = false;
       correct = false;
     } 
     
-    List<String> getReorderedKidsStartingAtKidOrStart(String start) {
+    List<PathElem> getReorderedKidsStartingAtKidOrStart(PathElem start) {
       // If we have a loop, unroll it starting at the provided start:
       if (isCycle) {
         int startIndex = pathNodes.indexOf(start);
         int len = pathNodes.size();
-        List<String> retval = new ArrayList<String>();
+        List<PathElem> retval = new ArrayList<PathElem>();
         for (int i = 0; i < len; i++) {
           int index = (startIndex + i) % len;
           retval.add(pathNodes.get(index));
@@ -735,7 +1031,130 @@ public class AlignCycleLayout extends NodeLayout {
       }
     }
   }
+  
+  /***************************************************************************
+  **
+  ** Path elements. Previously used strings, but blue node complexities drive this
+  ** to be more involved
+  */  
+  
+  private static class PathElem  {
+  	
+  	enum NodeColor {PURPLE, RED, BLUE};
+        
+    String smallNodeName;
+    String largeNodeName;
+    NodeColor color;
+
+    private PathElem() {  	
+    }
+    
+    static PathElem buildBlueNode(String name) {
+    	if (name == null) {
+    		throw new IllegalStateException();
+    	}
+      PathElem retval = new PathElem();
+      retval.color = NodeColor.BLUE;
+      retval.smallNodeName = name;
+      return (retval);
+    }
+    
+    static PathElem buildRedNode(String name) {
+      PathElem retval = new PathElem();
+      retval.color = NodeColor.RED;
+      retval.largeNodeName = name;
+      return (retval);
+    }
+    
+    static PathElem buildPurpleNode(String smallName, String largeName) {
+      PathElem retval = new PathElem();
+      retval.color = NodeColor.PURPLE;
+      retval.smallNodeName = smallName;
+      retval.largeNodeName = largeName;
+      return (retval);
+    }
+    
+    
+    PathElem(NetNode node) {
+    	// The -1 argument means we get an empty string if the :: is a suffix (blue node)
+      String[] toks = node.getName().split("::", -1);
+      if (toks.length != 2) {
+      	throw new IllegalArgumentException();
+      }
+      boolean firstEmpty = toks[0].equals("");
+      boolean secondEmpty = toks[1].equals("");
+      //
+      // If first element is empty, we have a red node. If last element is empty, 
+      // we have a blue node. If neither, the node is purple:
+      //
+      if (firstEmpty && !secondEmpty) {
+        color = NodeColor.RED;
+        largeNodeName = toks[1];
+      } else if (!firstEmpty && secondEmpty) {
+        color = NodeColor.BLUE;
+        smallNodeName = toks[0];
+      } else if (!firstEmpty && !secondEmpty) {
+      	color = NodeColor.PURPLE;
+      	smallNodeName = toks[0];
+        largeNodeName = toks[1];
+      } else {
+      	throw new IllegalArgumentException();
+      }
+    }
+    
+    @Override
+    public String toString() {
+    	switch (this.color) {
+	      case RED:
+	      	return (this.color + " node : ::" + largeNodeName);
+	      case BLUE:
+	      	return (this.color + " node : " + smallNodeName + "::");
+	      case PURPLE:
+	      	return (this.color + " node : " + smallNodeName + "::" + largeNodeName);
+        default:
+        	break;   	
+	    }
+    	throw new IllegalStateException();
+    }
  
+    @Override
+    public int hashCode() {
+    	int smallCode = (smallNodeName == null) ? 0 : smallNodeName.hashCode();
+    	int largeCode = (largeNodeName == null) ? 0 : largeNodeName.hashCode();
+      return (smallCode + largeCode + color.hashCode());
+    }
+
+    @Override
+    public boolean equals(Object other) {
+	    if (other == null) {
+	      return (false);
+	    }
+	    if (other == this) {
+	      return (true);
+	    }
+	    if (!(other instanceof PathElem)) {
+	      return (false);
+	    }
+	    
+	    PathElem otherElem = (PathElem)other;
+	    if (otherElem.color != this.color) {
+	    	return (false);
+	    }
+	    switch (this.color) {
+	      case RED:
+	      	return (this.largeNodeName.equals(otherElem.largeNodeName));
+	      case BLUE:
+	      	return (this.smallNodeName.equals(otherElem.smallNodeName));
+	      case PURPLE:
+	      	return (this.largeNodeName.equals(otherElem.largeNodeName) &&
+	      	        this.smallNodeName.equals(otherElem.smallNodeName));
+        default:
+        	break;   	
+	    }
+	    throw new IllegalStateException();
+	  }
+  }
+
   /***************************************************************************
   **
   ** For passing around layout params
@@ -752,19 +1171,31 @@ public class AlignCycleLayout extends NodeLayout {
   
   /***************************************************************************
   **
-  ** For passing around layout params
+  ** For passing around node maps
+  ** Reminder: a map takes elements in domain and spits out values in the range.
+  ** Alignment map A takes some of the nodes in smallNodes set S, and specifically ALL of the
+  ** purple nodes in S, into a subset of the nodes in largeNodes set L. To do the cycle layout, we 
+  ** need to have some inverse map F from L to S such the domain of F is a subset of L, and the range 
+  ** of F completely covers the subset of S that are purple nodes. If the nodes are in the same namespace, 
+  ** the identity map on the elements of L is sufficient. If not, the inverse of the perfect alignment map 
+  ** does the trick. Check first if the identity map can work.
   */  
   
   private static class NodeMaps  {
         
-    Map<String, String> normalMap;
-    Map<String, String> backMap;
-    Map<String, String> correctMap;
+    Map<String, String> normalMap; // i.e. the alignment map, but just using names (not nodeIDs)
+    Map<String, String> backMap;  // The correct back alignment of nodes in L that go to purple nodes of S 
+    Map<String, String> correctMap; // The correct forward alignment, taking purple nodes to purple nodes
+    Set<PathElem> blueNodes;
+    Set<PathElem> redNodes;
 
-    NodeMaps(Map<String, String> normalMap, Map<String, String> backMap, Map<String, String> correctMap) {
+    NodeMaps(Map<String, String> normalMap, Map<String, String> backMap, 
+    		     Map<String, String> correctMap, Set<PathElem> blueNodes, Set<PathElem> redNodes) {
       this.normalMap = normalMap;
       this.backMap = backMap;
       this.correctMap = correctMap;
+      this.blueNodes = blueNodes;
+      this.redNodes = redNodes;
     } 
   }
   
