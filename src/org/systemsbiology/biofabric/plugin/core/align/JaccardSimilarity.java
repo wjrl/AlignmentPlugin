@@ -46,27 +46,15 @@ public class JaccardSimilarity {
   //
   ////////////////////////////////////////////////////////////////////////////
   
+  private Set<NetLink> allLinksMain_, allLinksPerfect_;
+  private Set<NetNode> loneNodeIDsMain_, loneNodeIDsPerfect_;
+  private NetworkAlignment.NodeColorMap colorMapMain_, colorMapPerfect_;
+  private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
+  private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
   private BTProgressMonitor monitor_;
+  
   private final Double jaccSimThreshold_;
-  
-//  private Map<ComboNode, Set<ComboNode>> nodeToNeighMain_, nodeToNeighPerfect_;
-//  private Map<BareNode, NetNode> v1ToV12Main_, v1ToV12Perfect_;
-//  private Map<NetNode, BareNode> v12ToV1Main_, v12ToV1Perfect_;
-  
-  private Map<NetNode, Set<NetLink>> nodeToLinksMain_;
-  private Map<NetNode, Set<NetLink>> nodeToLinksPerfect_;
-  
-  
-  Oracle oracle_;
-  
-  Set<NetLink> allLinksMain_;
-  Set<NetNode> loneNodeIDsMain_;
-  NetworkAlignment.NodeColorMap colorMapMain_;
-  Set<NetLink> allLinksPerfect_;
-  Set<NetNode> loneNodeIDsPerfect_;
-  NetworkAlignment.NodeColorMap colorMapPerfect_;
-  Map<NetNode, Set<NetNode>> nodeToNeighborsMain_;
-  Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect_;
+  private OracleNetwork oracle_;
   
   ////////////////////////////////////////////////////////////////////////////
   //
@@ -85,7 +73,6 @@ public class JaccardSimilarity {
                     final Double jaccSimThreshold,
                     BTProgressMonitor monitor) throws AsynchExitRequestException {
     
-    
     this.allLinksMain_ = allLinksMain;
     this.loneNodeIDsMain_ = loneNodeIDsMain;
     this.colorMapMain_ = colorMapMain;
@@ -96,32 +83,13 @@ public class JaccardSimilarity {
     this.colorMapPerfect_ = colorMapPerfect;
     this.nodeToNeighborsPerfect_ = nodeToNeighborsPerfect;
     this.nodeToLinksPerfect_ = nodeToLinksPerfect;
-    this.jaccSimThreshold_ = jaccSimThreshold;
     this.monitor_ = monitor;
+    this.jaccSimThreshold_ = jaccSimThreshold;
     
-    this.oracle_ = new Oracle(allLinksMain, loneNodeIDsMain, colorMapMain,
+    this.oracle_ = new OracleNetwork(allLinksMain, loneNodeIDsMain, colorMapMain,
             allLinksPerfect, loneNodeIDsPerfect, colorMapPerfect,
-            nodeToNeighborsMain, nodeToLinksMain, nodeToNeighborsPerfect, nodeToLinksPerfect, jaccSimThreshold, monitor);
+            nodeToNeighborsMain, nodeToLinksMain, nodeToNeighborsPerfect, nodeToLinksPerfect, monitor);
     this.oracle_.summon();
-    
-//    System.out.println(oracle_.allGreekNodes_);
-//    System.out.println(oracle_.allGreekLinks_);
-//
-//    double totJ = 0.0;
-//    int size  = 0;
-//    for (BareNode node : oracle_.perfectToGreek_.keySet()) {
-//      if (node.color == NetworkAlignment.NodeColor.RED) {
-//        continue;
-//      }
-//      size ++;
-//      GreekNode nodePer = oracle_.perfectToGreek_.get(node);
-//      GreekNode nodeMain = oracle_.mainToGreek_.get(node);
-//      totJ += jaccSimValue(nodeMain, nodePer);
-//    }
-//    double measure = totJ / size;
-//    System.out.println(measure);
-  
-  
     return;
   }
   
@@ -131,88 +99,54 @@ public class JaccardSimilarity {
    */
   
   boolean isCorrectJS(NetNode node) {
-    
-//    BareNode v1Eq = v12ToV1Main_.get(node);
-//
-//    NetNode match = v1ToV12Perfect_.get(v1Eq);
-//
-//    ComboNode nodeEq = new ComboNode(node.getName()), matchEq = new ComboNode(match.getName());
-//
-//    double jsVal = jaccSimValue(nodeEq, matchEq);
-//
-//    if (jaccSimThreshold_ == null) {
-//      throw new IllegalStateException("JS Threshold is null"); // should never happen
-//    }
-//
-//    boolean isCorrect = Double.compare(jsVal, jaccSimThreshold_) >= 0;
-//    return (isCorrect);
-
-    throw (new IllegalStateException());
-//    String v1NodeEquivalent = v12ToV1Main_.get(node);
-//
-//      String largeName = (node.getName().split("::"))[1];
-//
-//      NetNode largeNode = nameToLarge_.get(largeName);
-//      if (largeNode == null) {
-//        throw new IllegalStateException("Large node for " + node.getName() + " not found for Jaccard Similarity");
-//      }
-//      NetNode match = entrezAlign.get(largeNode);
-//
-//      double jsVal = jaccSimValue(largeNode, match);
-//      if (jaccSimThreshold_ == null) {
-//        throw new IllegalStateException("JS Threshold is null"); // should never happen
-//      }
-//      boolean isCorrect = Double.compare(jsVal, jaccSimThreshold_) >= 0;
-//      return (isCorrect);
-//    throw (new IllegalStateException());
+    BareNode part1 = BareNode.getNode(node, colorMapMain_.getColor(node));
+    GreekNode main = oracle_.mainToGreek_.get(part1), match = oracle_.perfectToGreek_.get(part1);
+    double jsVal = jaccSimValue(main, match);
+    if (jaccSimThreshold_ == null) {
+      throw new IllegalStateException("JS Threshold is null"); // should never happen
+    }
+    boolean isCorrect = Double.compare(jsVal, jaccSimThreshold_) >= 0;
+    return (isCorrect);
   }
   
   /****************************************************************************
    **
-   ** Jaccard Similarity Measure - Adapted from NodeEQC.java
+   ** Jaccard Similarity Measure - Historically Adapted from NodeEQC.java
+   ** For Blue Nodes Case - Now uses 'oracle' network
    */
   
   double calcScore() {
-    
-//    double totJ = 0.0;
-//    for (BareNode graph1Node : v1ToV12Main_.keySet()) {
-////      System.out.println(graph1Node + "   " + v1ToV12Main_.get(graph1Node));
-//      NetNode nodeEqV12Main = v1ToV12Main_.get(graph1Node),
-//              nodeEqV12Perfect = v1ToV12Perfect_.get(graph1Node);
-//      ComboNode node = new ComboNode(nodeEqV12Main.getName()),
-//              match = new ComboNode(nodeEqV12Perfect.getName());
-//      Double val = jaccSimValue(node, match);
-//      totJ += val;
-//    }
-//
-//    double measure = totJ / v1ToV12Main_.size();
     double totJ = 0.0;
-    int size  = 0;
+    int size = 0;
     for (BareNode node : oracle_.perfectToGreek_.keySet()) {
-      if (node.color == NetworkAlignment.NodeColor.RED) {
+      if (node.type == GraphType.GRAPH2) {
         continue;
       }
-      size ++;
+      size++;
       GreekNode nodePer = oracle_.perfectToGreek_.get(node);
       GreekNode nodeMain = oracle_.mainToGreek_.get(node);
       totJ += jaccSimValue(nodeMain, nodePer);
     }
     double measure = totJ / size;
-    System.out.println(measure);
-    
-    
     return (measure);
   }
+  
+  ////////////////////////////////////////////////////////////////////////////
+  //
+  // PRIVATE METHODS
+  //
+  ////////////////////////////////////////////////////////////////////////////
+  
+  /***************************************************************************
+   **
+   ** JS value between two nodes; [sigma(x, y) in paper]
+   */
   
   private double jaccSimValue(GreekNode node, GreekNode match) {
     int lenAdjust = 0;
     HashSet<GreekNode> scratchNode = new HashSet<GreekNode>(oracle_.nodeToNeighGreek_.get(node)),
             scratchMatch = new HashSet<GreekNode>(oracle_.nodeToNeighGreek_.get(match));
-    
-//    System.out.println(scratchNode);
-//    System.out.println(scratchMatch);
-//    System.out.println();
-    
+
     if (scratchNode.contains(match)) {
       scratchNode.remove(match);
       scratchMatch.remove(node);
@@ -230,47 +164,6 @@ public class JaccardSimilarity {
     }
     return (jaccard);
   }
-  
-  /***************************************************************************
-   **
-   ** Jaccard Similarity between two nodes in V12 of G12=(V12,E12);
-   ** sigma(x,y) : V12 -> [0,1]                   (from the paper)
-   ** node, match - both MUST be V12 nodes (Blue, Purple, or Red)
-   */
-  
-//  private double jaccSimValue(ComboNode node, ComboNode match) {
-//    int lenAdjust = 0;
-//    HashSet<ComboNode> scratchNode = new HashSet<ComboNode>(nodeToNeighMain_.get(node)),
-//            scratchMatch = new HashSet<ComboNode>(nodeToNeighPerfect_.get(match));
-//
-////    System.out.println(scratchNode);
-////    System.out.println(scratchMatch);
-////    System.out.println();
-//
-//
-//    if (scratchNode.contains(match)) {
-//      scratchNode.remove(match);
-//      scratchMatch.remove(node);
-//      lenAdjust = 1;
-//    }
-//    HashSet<ComboNode> union = new HashSet<ComboNode>(), intersect = new HashSet<ComboNode>();
-//    union(scratchNode, scratchMatch, union);
-//    intersection(scratchNode, scratchMatch, intersect);
-//
-//    int iSize = intersect.size() + lenAdjust;
-//    int uSize = union.size() + lenAdjust;
-//    Double jaccard = (double) (iSize) / (double) uSize;
-//    if (jaccard.isNaN()) {  // case of 0/0 for two singletons
-//      jaccard = 1.0;
-//    }
-//    return (jaccard);
-//  }
-  
-  ////////////////////////////////////////////////////////////////////////////
-  //
-  // PRIVATE METHODS
-  //
-  ////////////////////////////////////////////////////////////////////////////
   
   /***************************************************************************
    **
@@ -296,22 +189,45 @@ public class JaccardSimilarity {
     return;
   }
   
+  ////////////////////////////////////////////////////////////////////////////
+  //
+  // PRIVATE INNER CLASSES
+  //
+  ////////////////////////////////////////////////////////////////////////////
   
-  private static class Oracle {
+//  private static String[] greek = {"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "iota"};
+  
+  private enum GraphType {GRAPH1, GRAPH2}
+  
+  /****************************************************************************
+   **
+   ** The ORACLE network that allows us to compare Test and Perfect alignment
+   ** under one namespace. It uses abstractions of 'Greek' nodes and links.
+   **
+   ** The oracle consists of:
+   **    a) G1 union G2 under the perfect alignment, *removing all bBb edges*, plus
+   **    b) All unaligned blue nodes under the test alignment that are *supposed* to
+   **       be purple under the perfect alignment, plus the pBb edges incident on those nodes.
+   */
+  
+  private static class OracleNetwork {
     
-    Set<NetLink> allLinksMain_;
-    Set<NetNode> loneNodeIDsMain_;
-    NetworkAlignment.NodeColorMap colorMapMain_;
-    Set<NetLink> allLinksPerfect_;
-    Set<NetNode> loneNodeIDsPerfect_;
-    NetworkAlignment.NodeColorMap colorMapPerfect_;
-    Map<NetNode, Set<NetNode>> nodeToNeighborsMain_;
-    Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect_;
-    private Map<NetNode, Set<NetLink>> nodeToLinksMain_;
-    private Map<NetNode, Set<NetLink>> nodeToLinksPerfect_;
+    static int counter = 0; // This allows to create GreekNodes
+    
+    //
+    // Perfect and Main alignment Data Structures
+    //
+    
+    private Set<NetLink> allLinksMain_, allLinksPerfect_;
+    private Set<NetNode> loneNodeIDsMain_, loneNodeIDsPerfect_;
+    private NetworkAlignment.NodeColorMap colorMapMain_, colorMapPerfect_;
+    private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
+    private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
     private BTProgressMonitor monitor_;
     
-    static int counter = 0;
+    //
+    // Greek Data Structures
+    //
     
     Map<BareNode, GreekNode> mainToGreek_, perfectToGreek_;
     private Set<GreekNode> allGreekNodes_;
@@ -320,7 +236,7 @@ public class JaccardSimilarity {
     private Set<GreekNode> loneGreekNodes_;
     private Map<GreekNode, Set<GreekNode>> nodeToNeighGreek_;
     
-    Oracle(Set<NetLink> allLinksMain, Set<NetNode> loneNodeIDsMain,
+    OracleNetwork(Set<NetLink> allLinksMain, Set<NetNode> loneNodeIDsMain,
                   NetworkAlignment.NodeColorMap colorMapMain,
                   Set<NetLink> allLinksPerfect, Set<NetNode> loneNodeIDsPerfect,
                   NetworkAlignment.NodeColorMap colorMapPerfect,
@@ -328,7 +244,6 @@ public class JaccardSimilarity {
                   Map<NetNode, Set<NetLink>> nodeToLinksMain,
                   Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect,
                   Map<NetNode, Set<NetLink>> nodeToLinksPerfect,
-                  final Double jaccSimThreshold,
                   BTProgressMonitor monitor) {
       
       this.allLinksMain_ = allLinksMain;
@@ -345,16 +260,19 @@ public class JaccardSimilarity {
       this.perfectToGreek_ = new HashMap<BareNode, GreekNode>();
       this.mainToGreek_ = new HashMap<BareNode, GreekNode>();
       this.loneGreekNodes_ = new HashSet<GreekNode>();
+      this.nodeToNeighGreek_ = new HashMap<GreekNode, Set<GreekNode>>();
       this.monitor_ = monitor;
       this.nodeToLinksMain_ = nodeToLinksMain;
       this.nodeToLinksPerfect_ = nodeToLinksPerfect;
     }
     
     void summon() throws AsynchExitRequestException {
+      // Create the Greek nodes and fill the maps from Main (test) and Perfect alignment to Greek Nodes
       createGreekMap();
       createGreekEdges();
       findLoners();
       createNeighborMap();
+      return;
     }
     
     private void createGreekMap() throws AsynchExitRequestException {
@@ -362,7 +280,6 @@ public class JaccardSimilarity {
       
       // This contains the G1 Part of the node name e.g. "A" (derived from "A::")
       Set<BareNode> blueNodesPerfect = new HashSet<BareNode>();
-//      Map<BareNode, GreekNode> g2nodeToGreek = new HashMap<BareNode, GreekNode>();
       
       //
       // All aligned perfect alignment nodes (Blue and Purple) get a Greek ID
@@ -374,19 +291,16 @@ public class JaccardSimilarity {
 //        }
         NetworkAlignment.NodeColor color = colorMapPerfect_.getColor(node);
         BareNode bareNode = BareNode.getNode(node, color);
+        
         addGreekNode(bareNode, perfectToGreek_);
-//        GreekNode greek = addGreekNode(bareNode, perfectToGreek_);
-
-//        if (color.equals(NetworkAlignment.NodeColor.PURPLE)) {
-//          g2nodeToGreek.put(bareNode, greek);
-//        } else
+        
         if (color.equals(NetworkAlignment.NodeColor.BLUE)) {
           blueNodesPerfect.add(bareNode);
         }
       }
       
       //
-      // Mis-assigned blue nodes (should be purple) in test alignment are added too
+      // Mis-assigned (should be purple) Blue nodes in test alignment get Greek IDs too
       //
       
       misassignedBlueNodes_ = new HashSet<NetNode>();
@@ -405,26 +319,12 @@ public class JaccardSimilarity {
           GreekNode match = perfectToGreek_.get(bareNode);
           mainToGreek_.put(bareNode, match);
         }
-//        if (color.equals(NetworkAlignment.NodeColor.BLUE)) {
-//          if (! blueNodesPerfect.contains(bareNode)) { // Mis-assigned Blue nodes get a Greek ID
-//            addGreekNode(bareNode, mainToGreek_);
-//          } else {                                  // Find Greek ID match for correctly Blue nodes
-////            GreekNode match = perfectToGreek_.get(bareNode);
-////            mainToGreek_.put(bareNode, match);
-//          }
-
-//        } else if (color.equals(NetworkAlignment.NodeColor.PURPLE)) { // Find Greek ID match for Purple nodes
-////          BareNode v2Node = BareNode.getNode(node, color);
-////          GreekNode match = g2nodeToGreek.get(v2Node);
-//          GreekNode match = g2nodeToGreek.get(bareNode);
-//          GreekNode match = perfectToGreek_.get(bareNode);
-//          mainToGreek_.put(bareNode, match);
       }
       return;
     }
     
     private void addGreekNode(BareNode node, Map<BareNode, GreekNode> greekMap) {
-      GreekNode greek = GreekNode.getNewGreek(node.name);
+      GreekNode greek = GreekNode.getNewGreek();
       greekMap.put(node, greek);
       allGreekNodes_.add(greek);
       return;
@@ -445,7 +345,7 @@ public class JaccardSimilarity {
     
     private void createGreekEdges() {
       for (NetLink link : allLinksPerfect_) {
-        if (!link.getRelation().equals(NetworkAlignment.EdgeType.FULL_ORPHAN_GRAPH1.tag)) {  // remove bBb edges under Perfect alignment
+        if (! link.getRelation().equals(NetworkAlignment.EdgeType.FULL_ORPHAN_GRAPH1.tag)) {  // remove bBb edges under Perfect alignment
           addGreekLink(link, perfectToGreek_, colorMapPerfect_);
         }
       }
@@ -475,9 +375,7 @@ public class JaccardSimilarity {
     }
     
     private void createNeighborMap() {
-      this.nodeToNeighGreek_ = new HashMap<GreekNode, Set<GreekNode>>();
       for (GreekLink link : allGreekLinks_) {
-        
         if (nodeToNeighGreek_.get(link.src) == null) {
           nodeToNeighGreek_.put(link.src, new HashSet<GreekNode>());
         }
@@ -495,62 +393,64 @@ public class JaccardSimilarity {
     
   }
   
-  ////////////////////////////////////////////////////////////////////////////
-  //
-  // PRIVATE INNER CLASSES
-  //
-  ////////////////////////////////////////////////////////////////////////////
-  
-  private static String[] greek = {"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "iota"};
+  /****************************************************************************
+   **
+   ** Abstraction Node for Oracle Network
+   */
   
   private static class GreekNode implements Comparable {
     
-    private final String name;
+    final String name;
     
     GreekNode(String name) {
+      if (name == null) {
+        throw (new IllegalArgumentException("Null in GreekNode"));
+      }
       this.name = name;
     }
     
-    static GreekNode getNewGreek(String name) {
-//      return new GreekNode(name + " " + (Oracle.counter++) + "");
+    static GreekNode getNewGreek() {
 //      return new GreekNode(greek[Oracle.counter++]);
-      return (new GreekNode((Oracle.counter++) + ""));
+      return (new GreekNode((OracleNetwork.counter++) + ""));
     }
     
     @Override
     public boolean equals(Object o) {
       if (this == o) return true;
       if (! (o instanceof GreekNode)) return false;
-      
       GreekNode greek = (GreekNode) o;
-      
-      return name != null ? name.equals(greek.name) : greek.name == null;
+      return (name.equals(greek.name));
     }
     
     @Override
     public int hashCode() {
-      return name != null ? name.hashCode() : 0;
+      return (name.hashCode());
     }
-  
+    
     @Override
     public String toString() {
       return (name);
     }
-  
+    
     @Override
     public int compareTo(Object o) {
       GreekNode gn = (GreekNode) o;
-      return name.compareTo(gn.name);
+      return (name.compareTo(gn.name));
     }
     
   }
+  
+  /****************************************************************************
+   **
+   ** Abstraction Link for Oracle Network
+   */
   
   private static class GreekLink {
     
     final GreekNode src, trg;
     final String rel;
     
-    public GreekLink(GreekNode src, GreekNode trg, String rel) {
+    GreekLink(GreekNode src, GreekNode trg, String rel) {
       if (src == null || trg == null || rel == null) {
         throw (new IllegalArgumentException("Null in GreekLink"));
       }
@@ -583,58 +483,50 @@ public class JaccardSimilarity {
   
   /***************************************************************************
    **
-   ** String Wrapper for Nodes in V1 (A as in "A::B")
+   ** String Wrapper for Nodes in V1 and V2 ("A" as in "A::B", or "B" in "A::B")
    */
   
-  private static class BareNode { // note COLOR does not impact equalness
+  private static class BareNode {
     
     final String name;
-    final NetworkAlignment.NodeColor color;
+    final GraphType type;
     
     BareNode(String name, NetworkAlignment.NodeColor color) {
       if (name == null) {
         throw (new IllegalArgumentException());
       }
       this.name = name;
-      this.color = color;
+      if (color == NetworkAlignment.NodeColor.PURPLE || color == NetworkAlignment.NodeColor.BLUE) {
+        this.type = GraphType.GRAPH1;
+      } else if (color == NetworkAlignment.NodeColor.RED) {
+        this.type = GraphType.GRAPH2;
+      } else {
+        throw (new IllegalArgumentException());
+      }
     }
     
-//    @Override
-//    public boolean equals(Object o) {
-//      if (this == o) return true;
-//      if (! (o instanceof BareNode)) return false;
-//      BareNode bareNode = (BareNode) o;
-//      if (! name.equals(bareNode.name)) return false;
-//      return color == bareNode.color;
-//    }
-//
-//    @Override
-//    public int hashCode() {
-//      int result = name.hashCode();
-//      result = 31 * result + (color != null ? color.hashCode() : 0);
-//      return result;
-//    }
-  
-  
     @Override
     public boolean equals(Object o) {
       if (this == o) return true;
       if (! (o instanceof BareNode)) return false;
-    
       BareNode node = (BareNode) o;
-  
-      return name.equals(node.name);
+      return (name.equals(node.name));
     }
-  
+    
     @Override
     public int hashCode() {
-      return name.hashCode();
+      return (name.hashCode());
     }
-  
+    
     @Override
     public String toString() {
       return (name);
     }
+    
+    /***************************************************************************
+     **
+     ** Create BareNode from a NetNode given which Graph (1 or 2) this node will be from
+     */
     
     static BareNode getNode(NetNode node, NetworkAlignment.NodeColor type) {
       String nodeStr;
@@ -649,40 +541,6 @@ public class JaccardSimilarity {
     }
     
   }
-  
-//  /***************************************************************************
-//   **
-//   ** String Wrapper for Nodes in V12 (e.g. "A::B")
-//   */
-//
-//  private static class ComboNode {
-//
-//    private final String name;
-//
-//    ComboNode(String name) {
-//      this.name = name;
-//    }
-//
-//    @Override
-//    public boolean equals(Object o) {
-//      if (this == o) return true;
-//      if (! (o instanceof ComboNode)) return false;
-//
-//      ComboNode comboNode = (ComboNode) o;
-//
-//      return name != null ? name.equals(comboNode.name) : comboNode.name == null;
-//    }
-//
-//    @Override
-//    public int hashCode() {
-//      return name != null ? name.hashCode() : 0;
-//    }
-//
-//    @Override
-//    public String toString() {
-//      return (name);
-//    }
-//  }
   
   /****************************************************************************
    **
@@ -716,214 +574,3 @@ public class JaccardSimilarity {
   }
   
 }
-
-
-//  /****************************************************************************
-//   **
-//   ** Create map : String -> Graph 1 node (blue or purple)
-//   */
-//
-//  private Map<V1Node, NetNode> findGraphOneNodes(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
-//                                                 NetworkAlignment.NodeColorMap colorMap)
-//          throws AsynchExitRequestException {
-//
-//    Map<V1Node, NetNode> ret = new HashMap<V1Node, NetNode>();
-//
-//    Set<NetNode> allNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinks, loneNodeIDs, monitor_);
-//    for (NetNode node : allNodes) {
-//      if (colorMap.getColor(node) == NetworkAlignment.NodeColor.PURPLE ||
-//              colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
-//        String g1name = StringUtilities.separateNodeOne(node.getName());
-//        V1Node v1Node = new V1Node(g1name);
-//        ret.put(v1Node, node);
-//      }
-//    }
-//    return (ret);
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Flip Map for map of V12 (Purple or Blue) -> V1 Node Name
-//   */
-//
-//  private Map<NetNode, V1Node> inverseMap(Map<V1Node, NetNode> v1NodeNameToV12Node) {
-//    Map<NetNode, V1Node> ret = new HashMap<NetNode, V1Node>();
-//    for (Map.Entry<V1Node, NetNode> entry : v1NodeNameToV12Node.entrySet()) {
-//      ret.put(entry.getValue(), entry.getKey());
-//    }
-//    return (ret);
-//  }
-
-//  /***************************************************************************
-//   **
-//   ** Convert Map to Greek for Oracle
-//   ** NO Blue Nodes
-//   */
-//
-//  private Map<Greek, Set<Greek>> createGreekMap(Map<NetNode, Set<NetNode>> nodeToNeighbors, NetworkAlignment.NodeColorMap colorMap) {
-//
-//    ;
-//
-//
-////    Map<Greek, Set<Greek>> ret = new HashMap<Greek, Set<Greek>>();
-////
-////    for (Map.Entry<NetNode, Set<NetNode>> entry : nodeToNeighbors.entrySet()) {
-////      NetNode node = entry.getKey();
-////
-//////      if (colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
-//////        continue;
-//////      }
-////      Set<Greek> neighbors = new HashSet<Greek>();
-////      for (NetNode neighbor : entry.getValue()) {
-//////        if (colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {
-//////          continue;
-//////        }
-////        if (colorMap.getColor(node) == NetworkAlignment.NodeColor.BLUE) {  // this eliminates 'bBb' edges while retaining the B nodes
-////          continue;
-////        }
-////        neighbors.add(perfectToGreek_.get(neighbor));
-////      }
-////      ret.put(perfectToGreek_.get(node), neighbors);
-////    }
-//    return (null);
-//  }
-
-//  private static class V2Node {
-//
-//    final String name;
-//
-//    V2Node(String name) {
-//      this.name = name;
-//    }
-//
-//    @Override
-//    public boolean equals(Object o) {
-//      if (this == o) return true;
-//      if (! (o instanceof V2Node)) return false;
-//
-//      V2Node v2Node = (V2Node) o;
-//
-//      return name != null ? name.equals(v2Node.name) : v2Node.name == null;
-//    }
-//
-//    @Override
-//    public int hashCode() {
-//      return name != null ? name.hashCode() : 0;
-//    }
-//
-//    @Override
-//    public String toString() {
-//      return (name);
-//    }
-//
-//    static V2Node getV2Node(NetNode node) {
-//      String g2nodeStr = StringUtilities.separateNodeTwo(node.getName());
-//      return (new V2Node(g2nodeStr));
-//    }
-//
-//  }
-
-
-//  private void createGreekMap() throws AsynchExitRequestException {
-//    Set<NetNode> perfectNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinksPerfect_, loneNodeIDsPerfect_, monitor_);
-//
-//    // This contains the G1 Part of the node name e.g. "A" (derived from "A::")
-//    Set<V1Node> blueNodesPerfect = new HashSet<V1Node>();
-//    Map<String, GreekNode> g2nodeToGreek = new HashMap<String, GreekNode>();
-//
-//    //
-//    // All aligned perfect alignment nodes (Blue and Purple) get a Greek ID
-//    //
-//
-//    for (NetNode node : perfectNodes) {
-//      if (colorMapPerfect_.getColor(node).equals(NetworkAlignment.NodeColor.RED)) {
-//        continue;
-//      }
-//
-//      V1Node v1Node = V1Node.getV1Node(node);
-//
-////      GreekNode greek = GreekNode.getNewGreek();
-////      perfectToGreek_.put(v1Node, greek);
-////      allGreekNodes_.add(greek);
-//      GreekNode greek = addGreekNode(v1Node, perfectToGreek_);
-//
-//      if (colorMapPerfect_.getColor(node).equals(NetworkAlignment.NodeColor.PURPLE)) {
-//        String g2node = StringUtilities.separateNodeTwo(node.getName());
-//        g2nodeToGreek.put(g2node, greek);
-//      } else if (colorMapPerfect_.getColor(node).equals(NetworkAlignment.NodeColor.BLUE)) {
-//        blueNodesPerfect.add(v1Node);
-//      }
-//    }
-//
-//    //
-//    // Mis-assigned blue nodes (should be purple) in test alignment are added too
-//    //
-//
-//    misassignedBlueNodes_ = new HashSet<NetNode>();
-//    Set<NetNode> testNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinksMain_, loneNodeIDsMain_, monitor_);
-//    for (NetNode node : testNodes) {
-//      if (colorMapMain_.getColor(node).equals(NetworkAlignment.NodeColor.RED)) {
-//        continue;
-//      }
-//
-//      V1Node v1Node = V1Node.getV1Node(node);
-//
-//      if (colorMapMain_.getColor(node).equals(NetworkAlignment.NodeColor.BLUE)) {
-//        if (! blueNodesPerfect.contains(v1Node)) { // Mis-assigned Blue nodes get a Greek ID
-////          greek = GreekNode.getNewGreek();
-////          allGreekNodes_.add(greek);
-////          misassignedBlueNodes_.add(node);
-//          addGreekNode(v1Node, mainToGreek_);
-//        } else {                                  // Find Greek ID match for correctly Blue nodes
-//          GreekNode greek = perfectToGreek_.get(v1Node);
-//          mainToGreek_.put(v1Node, greek);
-//        }
-//
-//      } else if (colorMapMain_.getColor(node).equals(NetworkAlignment.NodeColor.PURPLE)) { // Find Greek ID match for Purple nodes
-//        String g2nodeStr = StringUtilities.separateNodeTwo(node.getName());
-//        GreekNode match = g2nodeToGreek.get(g2nodeStr);
-//        mainToGreek_.put(v1Node, match);
-//      }
-//    }
-//    return;
-//  }
-//
-//  private GreekNode addGreekNode(V1Node node, Map<V1Node, GreekNode> map) {
-//    GreekNode greek = GreekNode.getNewGreek();
-//    map.put(node, greek);
-//    allGreekNodes_.add(greek);
-//    return (greek);
-//  }
-//
-//  private void addGreekLink(NetLink link, Map<V1Node, GreekNode> map) {
-//    V1Node srcV1 = V1Node.getV1Node(link.getSrcNode()), trgV1 = V1Node.getV1Node(link.getTrgNode());
-//    GreekNode src = map.get(srcV1), trg = map.get(trgV1);
-//
-//    GreekNode[] arr = {src, trg};
-//    Arrays.sort(arr);
-//
-//    GreekLink greeklink = new GreekLink(arr[0], arr[1], link.getRelation());
-//    allGreekLinks_.add(greeklink);
-//    return;
-//  }
-//
-//  private void createGreekEdges() {
-//
-//    for (NetLink link : allLinksPerfect_) {
-//      if (link.getRelation().equals(NetworkAlignment.EdgeType.FULL_ORPHAN_GRAPH1.tag)) {   // remove bBb edges under Perfect alignment
-//        continue;
-//      }
-//      addGreekLink(link, perfectToGreek_);
-//    }
-//
-//    for (NetNode node : misassignedBlueNodes_) {
-//      Set<NetLink> links = nodeToLinksMain_.get(node);
-//      for (NetLink link : links) {
-//        if (link.getRelation().equals(NetworkAlignment.EdgeType.HALF_ORPHAN_GRAPH1.tag)) { // add pBb edges under Test (main) alignment
-//          addGreekLink(link, mainToGreek_);
-//        }
-//      }
-//    }
-//    return;
-//  }
-
