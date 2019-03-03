@@ -287,7 +287,6 @@ public class AlignCycleLayout extends NodeLayout {
     //
      
     while (!targsToGo.isEmpty()) {
-    	System.out.println("targsToGo " + targsToGo);
       Iterator<Integer> crit = countRank.keySet().iterator();
       while (crit.hasNext()) {
         Integer key = crit.next();
@@ -295,32 +294,25 @@ public class AlignCycleLayout extends NodeLayout {
         Iterator<NetNode> pcit = perCount.iterator();
         while (pcit.hasNext()) {
           NetNode node = pcit.next();
-          System.out.println("targsToGo " + targsToGo);
-          System.out.println("pcitn " + node);
           if (targsToGo.contains(node)) {
             PathElem nodeKey = nodesToPathElem.get(node);
             AlignPath ac = alignPaths.get(nodeKey);
             ArrayList<NetNode> queue = new ArrayList<NetNode>();
             if (ac == null) {
-            	
+            	UiUtil.fixMePrintout("Is this case real??");
               targsToGo.remove(node);
               targets.add(node);
-              System.out.println("acn targsToGo " + targsToGo);
-              System.out.println("acn n " + node);
               queue.add(node); 
             } else {
               List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
               for (PathElem ulnode : unlooped) { 
                 NetNode daNode = pathElemToNode.get(ulnode);
-                System.out.println("targsToGo " + targsToGo);
-                System.out.println("dan " + daNode);
                 targsToGo.remove(daNode);
                 targets.add(daNode);
                 queue.add(daNode);
               }
               NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
               NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
-              System.out.println("cba " + boundsStart + " "  + boundsEnd);
               cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
             }
             flushQueue(targets, targsPerSource, linkCounts, targsToGo, queue, alignPaths, nodesToPathElem,
@@ -342,27 +334,25 @@ public class AlignCycleLayout extends NodeLayout {
     
     LoopReporter lr2 = new LoopReporter(loneNodes.size(), 20, monitor, 0.0, 0.25, "progress.addSingletonsToTargets");
     HashSet<NetNode> targSet = new HashSet<NetNode>(targets);
-    TreeSet<NetNode> remains = new TreeSet<NetNode>();
-    
-    for (NetNode lnod : loneNodes) {
+    TreeSet<NetNode> orderedTargSet = new TreeSet<NetNode>(loneNodes);
+    //
+    // Even adding on singleton nodes, we need to retain the align cycle ordering:
+    //
+    for (NetNode lnod : orderedTargSet) {
     	if (!targSet.contains(lnod)) {
     		lr2.report();
-    		remains.add(lnod); 		
+    		PathElem nodeKey = nodesToPathElem.get(lnod);
+    		AlignPath ac = alignPaths.get(nodeKey);
+        List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
+        for (PathElem ulnode : unlooped) { 
+          NetNode daNode = pathElemToNode.get(ulnode);
+          targSet.add(daNode);
+          targets.add(daNode);
+        }
     	}    	
     }
     lr2.finish();
-    targets.addAll(remains);
-    
-    int i = 0;
-    for (NetNode lnod : targets) {
-    	System.out.println(i++ + " " + lnod);
-    }  
-    
-    
-    
-    
-    
-       
+     
     return (targets);
   }
         

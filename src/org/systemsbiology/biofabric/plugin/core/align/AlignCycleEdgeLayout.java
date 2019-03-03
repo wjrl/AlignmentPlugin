@@ -98,6 +98,15 @@ public class AlignCycleEdgeLayout extends DefaultEdgeLayout {
                                               List<NetLink> links, BTProgressMonitor monitor, 
                                               boolean shadow, List<String> linkGroups) throws AsynchExitRequestException { 
     
+  	//
+  	// If shadows links are not shown, we are not going to do link groups for this, since we need every node
+  	// to appear on the diagonal
+  	//
+  	
+  	if (!shadow) {
+  		return (PluginSupportFactory.buildAnnotationSet());
+  	}
+
     NetworkAlignmentBuildData narbd = (NetworkAlignmentBuildData)rbd.getPluginBuildData();
     TreeMap<Integer, NetNode> invert = new TreeMap<Integer, NetNode>();
     for (NetNode node : rbd.getNodeOrder().keySet()) {

@@ -849,6 +849,14 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       if (filesNotOkay) {
         return (false);
       }
+      
+      int keepGoing =
+  		      JOptionPane.showConfirmDialog(topWindow_, rMan_.getPluginString("FILL ME IN"),
+  		                                    rMan_.getPluginString("FILL ME IN TOO"),
+  		                                    JOptionPane.YES_NO_OPTION);  
+      
+      
+      
       return (networkAlignmentFromSources(nai, NetworkAlignmentBuildData.ViewType.CYCLE));
     }
     
