@@ -1,7 +1,7 @@
 /*
 **    Copyright (C) 2018 Rishi Desai
 **
-**    Copyright (C) 2003-2018 Institute for Systems Biology
+**    Copyright (C) 2003-2019 Institute for Systems Biology
 **                            Seattle, Washington, USA.
 **
 **    This library is free software; you can redistribute it and/or
@@ -597,6 +597,9 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     public final NetworkAlignmentBuildData.ViewType analysisType;
     public final NodeGroupMap.PerfectNGMode mode;
     public final Double jaccSimThreshold;
+    // Extra settings used for AlignCycleLayout:
+    public boolean turnOnShadows;
+    public boolean useNodeGroups;    
     
     public NetworkAlignmentDialogInfo(File graph1, File graph2, File align, File perfect,
                                       NetworkAlignmentBuildData.ViewType analysisType, NodeGroupMap.PerfectNGMode mode,

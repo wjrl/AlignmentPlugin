@@ -58,6 +58,8 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
   public List<AlignCycleLayout.CycleBounds> cycleBounds;
   public NodeGroupMap.PerfectNGMode mode;
   public Double jaccSimThreshold;
+  public boolean useNodeGroups; 
+  public boolean turnShadowsOn;
 
   public NetworkAlignmentBuildData(Set<NetNode> allLargerNodes,
                                    Set<NetNode> allSmallerNodes,                                 
@@ -68,7 +70,8 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
                                    Map<NetNode, NetNode> mapG1toG2,
                                    Map<NetNode, NetNode> perfectG1toG2,
                                    ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                                   NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold) {
+                                   NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold,
+                                   boolean useNodeGroups, boolean turnShadowsOn) {
 
     this.allLargerNodes = allLargerNodes;
     this.allSmallerNodes = allSmallerNodes;
@@ -82,6 +85,8 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
     this.perfectG1toG2 = perfectG1toG2;
     this.mode = mode;
     this.jaccSimThreshold = jaccSimThreshold;
+    this.useNodeGroups = useNodeGroups;
+    this.turnShadowsOn = turnShadowsOn;
   }
 
   public NodeLayout getNodeLayout() {

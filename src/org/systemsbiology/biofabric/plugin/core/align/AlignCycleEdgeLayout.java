@@ -98,6 +98,12 @@ public class AlignCycleEdgeLayout extends DefaultEdgeLayout {
                                               List<NetLink> links, BTProgressMonitor monitor, 
                                               boolean shadow, List<String> linkGroups) throws AsynchExitRequestException { 
     
+  	
+  	NetworkAlignmentBuildData narbd = (NetworkAlignmentBuildData)rbd.getPluginBuildData();
+  	if (narbd.useNodeGroups) {
+  		return (PluginSupportFactory.buildAnnotationSet());
+  	}
+  	
   	//
   	// If shadows links are not shown, we are not going to do link groups for this, since we need every node
   	// to appear on the diagonal
@@ -107,7 +113,6 @@ public class AlignCycleEdgeLayout extends DefaultEdgeLayout {
   		return (PluginSupportFactory.buildAnnotationSet());
   	}
 
-    NetworkAlignmentBuildData narbd = (NetworkAlignmentBuildData)rbd.getPluginBuildData();
     TreeMap<Integer, NetNode> invert = new TreeMap<Integer, NetNode>();
     for (NetNode node : rbd.getNodeOrder().keySet()) {
       invert.put(rbd.getNodeOrder().get(node), node);
@@ -119,7 +124,7 @@ public class AlignCycleEdgeLayout extends DefaultEdgeLayout {
 
   /***************************************
   **
-  ** Write out link annotation file
+  ** Write out link annotations
   */
     
   private AnnotationSet calcGroupLinkAnnotsCycle(List<NetLink> links, List<NetNode> nodes,

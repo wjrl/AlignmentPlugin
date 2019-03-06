@@ -49,7 +49,6 @@ import org.systemsbiology.biofabric.api.model.Network;
 import org.systemsbiology.biofabric.api.parser.AbstractFactoryClient;
 import org.systemsbiology.biofabric.api.parser.GlueStick;
 import org.systemsbiology.biofabric.api.util.ExceptionHandler;
-import org.systemsbiology.biofabric.api.util.NID;
 import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.util.UniqueLabeller;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
@@ -84,6 +83,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   private BackgroundWorkerControlManager bwcm_;
   private String className_;
   private PluginResourceManager rMan_;
+  private PlugInNetworkModelAPI api_;
   
   
   ////////////////////////////////////////////////////////////////////////////
@@ -173,6 +173,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     flf_ = api.getFileUtilities();
     topWindow_ = api.getTopWindow();
     bwcm_ = api.getBWCtrlMgr();
+    api_ = api;
 
     for (BioFabricToolPlugInCmd cmd : myCmds_) {
       ((Enabler)cmd).setEnabled(true);
@@ -451,6 +452,9 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       return (false);
     }
   
+    System.out.println("FIX ME FIX ME: Can turn off shadow question here!");
+    
+    
     if (finished) { // for main alignment      
       finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, false);
     }
@@ -488,7 +492,8 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs,
                                mergedToCorrectNC, nodeColorMap, mapG1toG2, perfectG1toG2,
                                linksLarge, lonersLarge, pendingNetAlignStats_, outType,
-                               nadi.mode, jaccSimThreshold, idGen, nadi.align, cacheFile);
+                               nadi.mode, jaccSimThreshold, nadi.useNodeGroups, nadi.turnOnShadows,
+                               idGen, nadi.align, cacheFile);
     }
     pendingNetAlignStats_ = new NetAlignStats();
     return (true);
@@ -540,6 +545,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
                                            NetAlignStats report, 
                                            NetworkAlignmentBuildData.ViewType viewType, 
                                            NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold,
+                                           boolean useNodeGroups, boolean turnShadowsOn,
                                            UniqueLabeller idGen, File align, File holdIt) {
 
     HashMap<NetNode, String> emptyClustMap = new HashMap<NetNode, String>();
@@ -547,7 +553,8 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     BuildData bd = PluginSupportFactory.getBuildDataForPlugin(idGen, reducedLinks, loneNodeIDs, emptyClustMap, null);
     bd.setLayoutMode(Network.LayoutMode.PER_NETWORK_MODE);
     NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(allLargerNodes, allSmallerNodes, mergedToCorrect, nodeColorMap, report,
-                                                                   viewType, mapG1toG2, perfectMap, linksLarge, lonersLarge, mode, jaccSimThreshold);
+                                                                   viewType, mapG1toG2, perfectMap, linksLarge, 
+                                                                   lonersLarge, mode, jaccSimThreshold, useNodeGroups, turnShadowsOn);
     bd.setPluginBuildData(nabd);
   
     try {
@@ -850,12 +857,25 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
         return (false);
       }
       
-      int keepGoing =
-  		      JOptionPane.showConfirmDialog(topWindow_, rMan_.getPluginString("FILL ME IN"),
-  		                                    rMan_.getPluginString("FILL ME IN TOO"),
-  		                                    JOptionPane.YES_NO_OPTION);  
+      //
+      // With this layout, shadow links can really help, since we do not draw link group annotations if shadows
+      // are not present. So provide the user with the opportunity to force shadow links to be on, and to choose
+      // if they want link or node groups
+      //
       
+      boolean haveShadows = api_.getDisplayShadows();
+      ShadowsAndGroupsDialog sagd = new ShadowsAndGroupsDialog(topWindow_, rMan_, haveShadows);
+      sagd.setVisible(true);
       
+      if (!sagd.haveResult()) {
+        return (false);
+      } 
+       
+      nai.useNodeGroups = sagd.useNodeGroups();
+      nai.turnOnShadows = sagd.turnShadowsOn();
+     
+      
+        	
       
       return (networkAlignmentFromSources(nai, NetworkAlignmentBuildData.ViewType.CYCLE));
     }

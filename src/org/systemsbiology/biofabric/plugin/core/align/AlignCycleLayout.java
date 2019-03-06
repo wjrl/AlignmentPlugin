@@ -34,11 +34,15 @@ import java.util.TreeSet;
 import org.systemsbiology.biofabric.api.io.BuildData;
 import org.systemsbiology.biofabric.api.layout.LayoutCriterionFailureException;
 import org.systemsbiology.biofabric.api.layout.NodeLayout;
+import org.systemsbiology.biofabric.api.model.AnnotationSet;
 import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
+import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
+import org.systemsbiology.biofabric.ui.FabricDisplayOptions;
+import org.systemsbiology.biofabric.ui.FabricDisplayOptionsManager;
 import org.systemsbiology.biofabric.util.UiUtil;
 
 /****************************************************************************
@@ -91,10 +95,6 @@ public class AlignCycleLayout extends NodeLayout {
   //
   ////////////////////////////////////////////////////////////////////////////
 
-  //
-  // December 2018: Need to investigate how to incorporate blue nodes!
-  //
-  
   /***************************************************************************
   **
   ** Find out if the necessary conditions for this layout are met. For this layout, we either
@@ -147,9 +147,62 @@ public class AlignCycleLayout extends NodeLayout {
     //
     
     installNodeOrder(targetIDs, rbd, monitor);
+    
+    NetworkAlignmentBuildData narbd = (NetworkAlignmentBuildData)rbd.getPluginBuildData();
+    
+    System.out.println("FIX ME FIX ME GET THIS INTO ABSTRACT API");
+    FabricDisplayOptions dops = FabricDisplayOptionsManager.getMgr().getDisplayOptions();
+		dops.setDisplayShadows(narbd.turnShadowsOn);
+ 
+    if (narbd.useNodeGroups) {
+	    TreeMap<Integer, NetNode> invert = new TreeMap<Integer, NetNode>();
+	    for (NetNode node : rbd.getNodeOrder().keySet()) {
+	      invert.put(rbd.getNodeOrder().get(node), node);
+	    }
+	    ArrayList<NetNode> order = new ArrayList<NetNode>(invert.values());
+	    AnnotationSet nAnnots = generateNodeAnnotations(order, monitor, narbd.cycleBounds);
+	    rbd.setNodeAnnotations(nAnnots);
+    }
+    
     return (targetIDs);
   }
   
+  
+  /***************************************
+  **
+  ** Generate Node annotations
+  */
+    
+  private AnnotationSet generateNodeAnnotations(List<NetNode> nodes,
+                                                BTProgressMonitor monitor, 
+                                                List<AlignCycleLayout.CycleBounds> bounds) throws AsynchExitRequestException {
+  
+    LoopReporter lr = new LoopReporter(nodes.size(), 20, monitor, 0, 1.0, "progress.nodeAnnotation"); 
+      
+    HashMap<NetNode, Integer> nodeOrder = new HashMap<NetNode, Integer>();
+    for (int i = 0; i < nodes.size(); i++) {
+      nodeOrder.put(nodes.get(i), Integer.valueOf(i));      
+    }
+    
+    int cycle = 0;
+
+    AnnotationSet retval = PluginSupportFactory.buildAnnotationSet();
+    for (CycleBounds bound : bounds) {
+    	lr.report();
+    	if (bound.isCorrect) {
+    		continue;
+    	}
+    	String type = bound.isCycle ? "cycle " : "path ";
+    	int startPos = nodeOrder.get(bound.boundStart).intValue();
+    	int endPos = nodeOrder.get(bound.boundEnd).intValue();
+      String color = (cycle % 2 == 0) ? "Orange" : "Green";
+      retval.addAnnot(PluginSupportFactory.buildAnnotation(type + cycle++, startPos, endPos, 0, color));
+    }
+    lr.finish();
+  
+    return (retval);
+  }
+   
   /***************************************************************************
   **
   ** Relayout the network!
@@ -344,11 +397,18 @@ public class AlignCycleLayout extends NodeLayout {
     		PathElem nodeKey = nodesToPathElem.get(lnod);
     		AlignPath ac = alignPaths.get(nodeKey);
         List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
+        NetNode firstNode = null;
+        NetNode lastNode = null;
         for (PathElem ulnode : unlooped) { 
           NetNode daNode = pathElemToNode.get(ulnode);
+          if (firstNode == null) {
+          	firstNode = daNode;
+          }
+          lastNode = daNode;
           targSet.add(daNode);
           targets.add(daNode);
         }
+        cycleBounds.add(new CycleBounds(firstNode, lastNode, ac.correct, ac.isCycle));
     	}    	
     }
     lr2.finish();
