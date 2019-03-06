@@ -195,8 +195,6 @@ public class JaccardSimilarity {
   //
   ////////////////////////////////////////////////////////////////////////////
   
-//  private static String[] greek = {"alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "iota"};
-  
   private enum GraphType {GRAPH1, GRAPH2}
   
   /****************************************************************************
@@ -274,29 +272,54 @@ public class JaccardSimilarity {
       createNeighborMap();
       return;
     }
+  
+    /***************************************************************************
+     **
+     ** Create Greek Nodes and Maps for Main and Perfect Alignment
+     **
+     **   -In order to calculate JS - I need maps : G1 -> Greek for Main & Perfect
+     **     so I can iterate through the key set and get the respective GreekNodes;
+     *      These maps are instance fields
+     *    - In order to properly match Main's Purple nodes to their Greek ID, I need
+     *      to create a map : G2 -> Greek of Perfect, so I can use it while creating
+     *      Main's map : G1 -> Greek;
+     *    - To find which Greek ID (A::B)t (t for test/main) gets, I need to know which
+     *      Greek ID (X::B)p (p for perfect) gets; hence the need for G2-> Greek map
+     *      based on Perfect;
+     *      This map is a local variable;
+     *      This map here also contains G1's Greek Nodes under Perfect for the sake of
+     *      simplicity
+     */
     
     private void createGreekMap() throws AsynchExitRequestException {
       Set<NetNode> perfectNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinksPerfect_, loneNodeIDsPerfect_, monitor_);
       
       // This contains the G1 Part of the node name e.g. "A" (derived from "A::")
       Set<BareNode> blueNodesPerfect = new HashSet<BareNode>();
+      Map<BareNode, GreekNode> perfectPart2toGreek = new HashMap<BareNode, GreekNode>();
       
       //
-      // All aligned perfect alignment nodes (Blue and Purple) get a Greek ID
+      // All aligned perfect alignment nodes (Blue and Purple, and even Red (for sake of implementation)) get a Greek ID
       //
       
       for (NetNode node : perfectNodes) {
-//        if (colorMapPerfect_.getColor(node).equals(NetworkAlignment.NodeColor.RED)) {
-//          continue;
-//        }
         NetworkAlignment.NodeColor color = colorMapPerfect_.getColor(node);
         BareNode bareNode = BareNode.getNode(node, color);
         
-        addGreekNode(bareNode, perfectToGreek_);
+        GreekNode greekNode = addGreekNode(bareNode, perfectToGreek_);
         
         if (color.equals(NetworkAlignment.NodeColor.BLUE)) {
           blueNodesPerfect.add(bareNode);
         }
+        
+        BareNode secondPart;  // for (A::) and (::C) this is A and C, respectively; for (A::B) this is B - we want the second part
+                              // This is for when we get a Purple node in the main (test) alignment and we need to match it to its Greek ID
+        if (color.equals(NetworkAlignment.NodeColor.PURPLE)) {
+          secondPart = BareNode.getNode(node, NetworkAlignment.NodeColor.RED);
+        } else {
+          secondPart = bareNode;  // For (A::) and (::C) secondPart is just A and C, respectively
+        }
+        perfectPart2toGreek.put(secondPart, greekNode);
       }
       
       //
@@ -304,30 +327,33 @@ public class JaccardSimilarity {
       //
       
       misassignedBlueNodes_ = new HashSet<NetNode>();
-      Set<NetNode> testNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinksMain_, loneNodeIDsMain_, monitor_);
-      for (NetNode node : testNodes) {
-//        if (colorMapMain_.getColor(node).equals(NetworkAlignment.NodeColor.RED)) {
-//          continue;
-//        }
+      Set<NetNode> mainNodes = PluginSupportFactory.getBuildExtractor().extractNodes(allLinksMain_, loneNodeIDsMain_, monitor_);
+      for (NetNode node : mainNodes) {
         NetworkAlignment.NodeColor color = colorMapMain_.getColor(node);
         BareNode bareNode = BareNode.getNode(node, color);
         
-        if (color.equals(NetworkAlignment.NodeColor.BLUE) && ! blueNodesPerfect.contains(bareNode)) { // Mis-assigned Blue nodes get a Greek ID
+        if (color.equals(NetworkAlignment.NodeColor.BLUE) && ! blueNodesPerfect.contains(bareNode)) { // Mis-assigned Blue nodes get new Greek ID
           addGreekNode(bareNode, mainToGreek_);
           misassignedBlueNodes_.add(node);
         } else {
-          GreekNode match = perfectToGreek_.get(bareNode);
+          BareNode secondPart;
+          if (color.equals(NetworkAlignment.NodeColor.PURPLE)) {
+            secondPart = BareNode.getNode(node, NetworkAlignment.NodeColor.RED);
+          } else {
+            secondPart = bareNode;
+          }
+          GreekNode match = perfectPart2toGreek.get(secondPart);
           mainToGreek_.put(bareNode, match);
         }
       }
       return;
     }
     
-    private void addGreekNode(BareNode node, Map<BareNode, GreekNode> greekMap) {
+    private GreekNode addGreekNode(BareNode node, Map<BareNode, GreekNode> greekMap) {
       GreekNode greek = GreekNode.getNewGreek();
       greekMap.put(node, greek);
       allGreekNodes_.add(greek);
-      return;
+      return (greek);
     }
     
     private void addGreekLink(NetLink link, Map<BareNode, GreekNode> greekMap, NetworkAlignment.NodeColorMap colorMap) {
@@ -342,6 +368,11 @@ public class JaccardSimilarity {
       allGreekLinks_.add(greeklink);
       return;
     }
+  
+    /***************************************************************************
+     **
+     ** Create edge list based off Greek methodology;
+     */
     
     private void createGreekEdges() {
       for (NetLink link : allLinksPerfect_) {
@@ -359,6 +390,13 @@ public class JaccardSimilarity {
       }
       return;
     }
+  
+    /***************************************************************************
+     **
+     ** For simplicity, I ditch having loners and edge set; Oracle initially has
+     ** edge set and list of all nodes; node in list that doesn't appear in edge
+     ** set is obviously a singleton (same philosophy as SIF files)
+     */
     
     private void findLoners() {
       Set<GreekNode> visited = new HashSet<GreekNode>();
@@ -373,6 +411,11 @@ public class JaccardSimilarity {
       }
       return;
     }
+  
+    /***************************************************************************
+     **
+     ** Create neighbor map
+     */
     
     private void createNeighborMap() {
       for (GreekLink link : allGreekLinks_) {
@@ -525,19 +568,20 @@ public class JaccardSimilarity {
     
     /***************************************************************************
      **
-     ** Create BareNode from a NetNode given which Graph (1 or 2) this node will be from
+     ** Create BareNode from a NetNode given which Graph (1 or 2) this node will be from or
+     ** where to make the 'incision' for a Purple node: (A::B) can be A or B depends on specification
      */
     
-    static BareNode getNode(NetNode node, NetworkAlignment.NodeColor type) {
+    static BareNode getNode(NetNode node, NetworkAlignment.NodeColor incision) {
       String nodeStr;
-      if (type == NetworkAlignment.NodeColor.BLUE || type == NetworkAlignment.NodeColor.PURPLE) {
+      if (incision == NetworkAlignment.NodeColor.BLUE || incision == NetworkAlignment.NodeColor.PURPLE) {
         nodeStr = StringUtilities.separateNodeOne(node.getName());
-      } else if (type == NetworkAlignment.NodeColor.RED) {
+      } else if (incision == NetworkAlignment.NodeColor.RED) {
         nodeStr = StringUtilities.separateNodeTwo(node.getName());
       } else {
         throw (new IllegalArgumentException("incorrect NodeType"));
       }
-      return (new BareNode(nodeStr, type));
+      return (new BareNode(nodeStr, incision));
     }
     
   }
