@@ -859,24 +859,22 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       
       //
       // With this layout, shadow links can really help, since we do not draw link group annotations if shadows
-      // are not present. So provide the user with the opportunity to force shadow links to be on, and to choose
-      // if they want link or node groups
+      // are not present. So provide the user with the opportunity to force shadow links to be on.
       //
       
-      boolean haveShadows = api_.getDisplayShadows();
-      ShadowsAndGroupsDialog sagd = new ShadowsAndGroupsDialog(topWindow_, rMan_, haveShadows);
-      sagd.setVisible(true);
+      if (!api_.getDisplayShadows()) {
+        ShadowsAndGroupsDialog sagd = new ShadowsAndGroupsDialog(topWindow_, rMan_);
+        sagd.setVisible(true);
       
-      if (!sagd.haveResult()) {
-        return (false);
-      } 
-       
-      nai.useNodeGroups = sagd.useNodeGroups();
-      nai.turnOnShadows = sagd.turnShadowsOn();
-     
-      
-        	
-      
+        if (!sagd.haveResult()) {
+          return (false);
+        }
+        nai.turnOnShadows = sagd.turnShadowsOn();
+        nai.useNodeGroups = !nai.turnOnShadows;
+      } else {
+      	nai.useNodeGroups = false;
+      }
+
       return (networkAlignmentFromSources(nai, NetworkAlignmentBuildData.ViewType.CYCLE));
     }
     

@@ -149,11 +149,12 @@ public class AlignCycleLayout extends NodeLayout {
     installNodeOrder(targetIDs, rbd, monitor);
     
     NetworkAlignmentBuildData narbd = (NetworkAlignmentBuildData)rbd.getPluginBuildData();
-    
-    System.out.println("FIX ME FIX ME GET THIS INTO ABSTRACT API");
-    FabricDisplayOptions dops = FabricDisplayOptionsManager.getMgr().getDisplayOptions();
-		dops.setDisplayShadows(narbd.turnShadowsOn);
- 
+
+    rbd.setTurnOnShadows(narbd.turnShadowsOn);
+		if (rbd.getSingletonNodes().size() > 0) {
+			narbd.useNodeGroups = true;
+		}
+		
     if (narbd.useNodeGroups) {
 	    TreeMap<Integer, NetNode> invert = new TreeMap<Integer, NetNode>();
 	    for (NetNode node : rbd.getNodeOrder().keySet()) {
