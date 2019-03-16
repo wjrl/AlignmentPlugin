@@ -589,9 +589,8 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       struct.linksSmall = linksGraphB;
       struct.lonersSmall = loneNodeIDsGraphB;
       return (true);
-    } else if (numNodesA <= numNodesB) { // (case always true) will change later to correct - Rishi Desai 11/21/2018
+    } else if (numNodesA < numNodesB) {
       // G1 = A, G2 = B
-      UiUtil.fixMePrintout("Fix graph assignment"); // Rishi Desai 3/10/2019
       struct.linksLarge = linksGraphB;
       struct.lonersLarge = loneNodeIDsGraphB;
       struct.linksSmall = linksGraphA;
@@ -613,7 +612,22 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       flf_.displayFileInputError(ioe);
       return (false);
     }
-  
+    
+    //
+    // If there are blue nodes, then we do not bother to determine which network is G1 or G2
+    // We simply use the initial assignments
+    //
+    
+    int g1NodeSize = Math.min(nodesA.size(), nodesB.size());
+    if (mapG1ToG2Str.size() < g1NodeSize) {
+      // G1 = A, G2 = B
+      struct.linksLarge = linksGraphB;
+      struct.lonersLarge = loneNodeIDsGraphB;
+      struct.linksSmall = linksGraphA;
+      struct.lonersSmall = loneNodeIDsGraphA;
+      return (true);
+    }
+    
     Set<String> namesG1 = new HashSet<String>(), namesG2 = new HashSet<String>();
     for (Map.Entry<String, String> match : mapG1ToG2Str.entrySet()) {
       namesG1.add(match.getKey());
