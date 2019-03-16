@@ -64,6 +64,7 @@ import org.systemsbiology.biofabric.plugin.BioFabricToolPlugInData;
 import org.systemsbiology.biofabric.plugin.PlugInManager;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 import org.systemsbiology.biofabric.plugin.PlugInNetworkModelAPI;
+import org.systemsbiology.biofabric.util.UiUtil;
 import org.systemsbiology.biotapestry.biofabric.FabricCommands;
 
 import org.xml.sax.Attributes;
@@ -442,13 +443,11 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
               NetworkAlignmentBuildData.ViewType.GROUP, idGen, cacheFile);
     }
   
-    // i.e. same 2 graphs and perfect alignment yield an empty network
-    
+    // Warn user of alignment with only singletons
     if (finished && mergedLinks.isEmpty()) {
       JOptionPane.showMessageDialog(topWindow_, rMan_.getPluginString("networkAlignment.emptyNetwork"),
               rMan_.getPluginString("networkAlignment.emptyNetworkTitle"),
               JOptionPane.WARNING_MESSAGE);
-      return (false);
     }
   
     if (finished) { // for main alignment      
@@ -592,6 +591,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       return (true);
     } else if (numNodesA <= numNodesB) { // (case always true) will change later to correct - Rishi Desai 11/21/2018
       // G1 = A, G2 = B
+      UiUtil.fixMePrintout("Fix graph assignment"); // Rishi Desai 3/10/2019
       struct.linksLarge = linksGraphB;
       struct.lonersLarge = loneNodeIDsGraphB;
       struct.linksSmall = linksGraphA;

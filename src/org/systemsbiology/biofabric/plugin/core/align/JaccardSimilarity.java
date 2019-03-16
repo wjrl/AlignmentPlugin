@@ -453,7 +453,6 @@ public class JaccardSimilarity {
     }
     
     static GreekNode getNewGreek() {
-//      return new GreekNode(greek[Oracle.counter++]);
       return (new GreekNode((OracleNetwork.counter++) + ""));
     }
     
@@ -521,7 +520,11 @@ public class JaccardSimilarity {
       result = 31 * result + rel.hashCode();
       return result;
     }
-    
+  
+    @Override
+    public String toString() {
+      return (src + " " + trg + " " + rel);
+    }
   }
   
   /***************************************************************************

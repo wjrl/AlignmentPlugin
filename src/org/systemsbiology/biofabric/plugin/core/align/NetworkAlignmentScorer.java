@@ -257,13 +257,18 @@ public class NetworkAlignmentScorer {
       }
     }
     
-    try {
-      EC = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1);
-      S3 = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1 + numInducedGraph2);
-      ICS = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph2);
-    } catch (ArithmeticException ae) {
+    EC = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1);
+    S3 = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph1 + numInducedGraph2);
+    ICS = ((double) numCoveredEdge) / (numCoveredEdge + numInducedGraph2);
+    
+    // These three conditionals account for singleton node networks alignments where you get 0/0 for all three
+    if (EC.isNaN()) {
       EC = null;
+    }
+    if (S3.isNaN()) {
       S3 = null;
+    }
+    if (ICS.isNaN()) {
       ICS = null;
     }
     return;
