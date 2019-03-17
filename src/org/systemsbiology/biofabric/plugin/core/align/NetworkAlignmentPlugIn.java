@@ -431,7 +431,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
               JOptionPane.WARNING_MESSAGE);
     }
   
-    System.out.println("FIX ME FIX ME: Can turn off shadow question here!");
+    System.out.println("FIX ME FIX ME FIX ME: Can turn off shadow question here!");
     
     
     if (finished) { // for main alignment      
@@ -467,7 +467,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       }
       NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(nodeColorMap, reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect,
               mergedToCorrectNC, allLargerNodes, linksLarge, lonersLarge,  allSmallerNodes, mapG1toG2, perfectG1toG2,
-              pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold);
+              pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold, nadi.useNodeGroups, nadi.turnOnShadows);
   
       networkAlignmentStepFive(reducedLinks, mergedLoneNodeIDs, nabd, idGen, nadi.align, cacheFile);
     }
