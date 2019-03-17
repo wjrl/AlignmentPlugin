@@ -142,7 +142,7 @@ public class NodeGroupMap {
     if (mode == PerfectNGMode.JACCARD_SIMILARITY) { // create structures for JS involving perfect alignment
       Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect = new HashMap<NetNode, Set<NetNode>>();
       Map<NetNode, Set<NetLink>> nodeToLinksPerfect = new HashMap<NetNode, Set<NetLink>>();
-      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(allLinksPerfect, loneNodeIDsPerfect, nodeToNeighborsPerfect, nodeToLinksPerfect, monitor);
+      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(allLinksPerfect, loneNodeIDsPerfect, nodeToNeighborsPerfect, nodeToLinksPerfect, monitor_);
       
       this.funcJS_ = new JaccardSimilarity(allLinksMain, loneNodeIDsMain, colorMapMain, allLinksPerfect, loneNodeIDsPerfect,
               colorMapPerfect, nodeToNeighbors_, nodeToLinks_, nodeToNeighborsPerfect, nodeToLinksPerfect, jaccSimThreshold, monitor);
@@ -229,7 +229,7 @@ public class NodeGroupMap {
     
     if (mode_ != PerfectNGMode.NONE) {   // perfect NG mode is activated
       sb.append("/");
-      if (mergedToCorrectNC_.get(node) == null) {   // red node   // THERE IS A BUG HERE WHERE BLUE NODES PASS THIS CONDITION
+      if (mergedToCorrectNC_.get(node) == null) {
         sb.append(0);
       } else {
         boolean isCorrect;

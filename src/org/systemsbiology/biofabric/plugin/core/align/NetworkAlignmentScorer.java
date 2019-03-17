@@ -36,7 +36,6 @@ import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
-import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /****************************************************************************
@@ -70,12 +69,12 @@ public class NetworkAlignmentScorer {
   private Map<NetNode, Boolean> mergedToCorrectNC_;
   
   //
-  // This are from original untouched graphs and alignments
+  // This are from original untouched graphs and alignments - Not Used at all
   //
   
-//  private ArrayList<NetLink> linksSmall_, linksLarge_;
-//  private HashSet<NetNode> lonersSmall_, lonersLarge_;
-//  private Map<NetNode, NetNode> mapG1toG2_, perfectG1toG2_;
+  private ArrayList<NetLink> linksSmall_, linksLarge_;
+  private HashSet<NetNode> lonersSmall_, lonersLarge_;
+  private Map<NetNode, NetNode> mapG1toG2_, perfectG1toG2_;
   
   private BTProgressMonitor monitor_;
   private PluginResourceManager rMan_;
@@ -105,7 +104,7 @@ public class NetworkAlignmentScorer {
                                 ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                                 Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
                                 BTProgressMonitor monitor, PluginResourceManager rMan) throws AsynchExitRequestException {
-  	rMan_ = rMan;
+  	this.rMan_ = rMan;
     this.linksMain_ = new HashSet<NetLink>(reducedLinks);
     this.loneNodeIDsMain_ = new HashSet<NetNode>(loneNodeIDs);
     this.nodeColorMapMain_ = nodeColorMap;
@@ -118,22 +117,22 @@ public class NetworkAlignmentScorer {
     this.nodeToNeighborsMain_ = new HashMap<NetNode, Set<NetNode>>();
     this.nodeToLinksPerfect_ = new HashMap<NetNode, Set<NetLink>>();
     this.nodeToNeighborsPerfect_ = new HashMap<NetNode, Set<NetNode>>();
-//    this.linksSmall_ = linksSmall;
-//    this.lonersSmall_ = lonersSmall;
-//    this.linksLarge_ = linksLarge;
-//    this.lonersLarge_ = lonersLarge;
-//    this.mapG1toG2_ = mapG1toG2;
-//    this.perfectG1toG2_ = perfectG1toG2;
+    
+    this.linksSmall_ = linksSmall;
+    this.lonersSmall_ = lonersSmall;
+    this.linksLarge_ = linksLarge;
+    this.lonersLarge_ = lonersLarge;
+    this.mapG1toG2_ = mapG1toG2;
+    this.perfectG1toG2_ = perfectG1toG2;
+    
     // Create Node Group Map to use for NGS/LGS
-//    this.groupMapMain_ = new NodeGroupMap(reducedLinks, loneNodeIDs, mapG1toG2, perfectG1toG2, linksLarge, lonersLarge,
-//            mergedToCorrectNC, nodeColorMapMain_, NodeGroupMap.PerfectNGMode.NONE, null,
-//            NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-//    if (mergedToCorrectNC != null) {
-//      // investigate parameters
-//      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect, loneNodeIDsPerfect, perfectG1toG2, null,
-//              linksLarge, lonersLarge, null, nodeColorMapPerfect, NodeGroupMap.PerfectNGMode.NONE, null,
-//              NetworkAlignmentLayout.defaultNGOrderWithoutCorrect, NetworkAlignmentLayout.ngAnnotColorsWithoutCorrect, monitor);
-//    }
+    this.groupMapMain_ = new NodeGroupMap(linksMain_, loneNodeIDsMain_, nodeColorMapMain_, linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_,
+            mergedToCorrectNC_, NodeGroupMap.PerfectNGMode.NONE, null, NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
+    if (mergedToCorrectNC != null) {
+      // investigate parameters
+      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, null, null, null, null,
+              NodeGroupMap.PerfectNGMode.NONE, null, NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
+    }
     
     removeDuplicateAndShadow();
     // Generate Structures
