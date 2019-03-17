@@ -109,12 +109,11 @@ public class NodeGroupMap {
                       BTProgressMonitor monitor) throws AsynchExitRequestException {
     this(bd.getLinks(), 
     		 bd.getSingletonNodes(), 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mapG1toG2, 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).perfectG1toG2, 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksLarge, 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).colorMapMain,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).allLinksPerfect,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).loneNodeIDsPerfect,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).colorMapPerfect,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
-             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).nodeColorMap,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
          nodeGroupOrder, 
@@ -122,27 +121,34 @@ public class NodeGroupMap {
          monitor);
   }
   
-  public NodeGroupMap(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
-                      Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
-                      ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                      Map<NetNode, Boolean> mergedToCorrectNC,
-                      NetworkAlignment.NodeColorMap nodeColorMap,
-                      PerfectNGMode mode, final Double jaccSimThreshold,
-                      String[] nodeGroupOrder, String[][] colorMap,
-                      BTProgressMonitor monitor) throws AsynchExitRequestException {
-    this.links_ = allLinks;
-    this.loners_ = loneNodeIDs;
+  public NodeGroupMap(Set<NetLink> allLinksMain, Set<NetNode> loneNodeIDsMain,
+                        NetworkAlignment.NodeColorMap colorMapMain,
+                        Set<NetLink> allLinksPerfect, Set<NetNode> loneNodeIDsPerfect,
+                        NetworkAlignment.NodeColorMap colorMapPerfect,
+                        Map<NetNode, Boolean> mergedToCorrectNC,
+                        PerfectNGMode mode, final Double jaccSimThreshold,
+                        String[] nodeGroupOrder, String[][] colorMap,
+                        BTProgressMonitor monitor) throws AsynchExitRequestException {
+    
+    this.links_ = allLinksMain;
+    this.loners_ = loneNodeIDsMain;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
-    this.nodeColorMap_ = nodeColorMap;
+    this.nodeColorMap_ = colorMapMain;
     this.numGroups_ = nodeGroupOrder.length;
     this.mode_ = mode;
-    if (mode == PerfectNGMode.JACCARD_SIMILARITY) {
-//      this.funcJS_ = new JaccardSimilarity(allLinks, loneNodeIDs, nodeColorMap, jaccSimThreshold, monitor);
-    }
     this.monitor_ = monitor;
     this.nodeToNeighbors_ = new HashMap<NetNode, Set<NetNode>>();
     this.nodeToLinks_ = new HashMap<NetNode, Set<NetLink>>();
     PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(links_, loners_, nodeToNeighbors_, nodeToLinks_, monitor_);
+    
+    if (mode == PerfectNGMode.JACCARD_SIMILARITY) { // create structures for JS involving perfect alignment
+      Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect = new HashMap<NetNode, Set<NetNode>>();
+      Map<NetNode, Set<NetLink>> nodeToLinksPerfect = new HashMap<NetNode, Set<NetLink>>();
+      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(allLinksPerfect, loneNodeIDsPerfect, nodeToNeighborsPerfect, nodeToLinksPerfect, monitor);
+      
+      this.funcJS_ = new JaccardSimilarity(allLinksMain, loneNodeIDsMain, colorMapMain, allLinksPerfect, loneNodeIDsPerfect,
+              colorMapPerfect, nodeToNeighbors_, nodeToLinks_, nodeToNeighborsPerfect, nodeToLinksPerfect, jaccSimThreshold, monitor);
+    }
     generateOrderMap(nodeGroupOrder);
     generateColorMap(colorMap);
     calcNGRatios();
@@ -225,15 +231,14 @@ public class NodeGroupMap {
     
     if (mode_ != PerfectNGMode.NONE) {   // perfect NG mode is activated
       sb.append("/");
-      if (mergedToCorrectNC_.get(node) == null) {   // red node
+      if (mergedToCorrectNC_.get(node) == null) {   // red node   // THERE IS A BUG HERE WHERE BLUE NODES PASS THIS CONDITION
         sb.append(0);
       } else {
         boolean isCorrect;
         if (mode_ == PerfectNGMode.NODE_CORRECTNESS) {
           isCorrect = mergedToCorrectNC_.get(node);
         } else if (mode_ == PerfectNGMode.JACCARD_SIMILARITY) {
-          throw (new IllegalStateException());
-//          isCorrect = funcJS_.isCorrectJS(node);
+          isCorrect = funcJS_.isCorrectJS(node);
         } else {
           throw new IllegalStateException("Incorrect mode for Perfect NGs Group Map");
         }

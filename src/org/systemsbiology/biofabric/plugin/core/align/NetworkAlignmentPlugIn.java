@@ -459,11 +459,11 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       																							 reducedLinksPerfect, cacheFile, true, true);
     }
   
-    if (finished) { // Score Report
-      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, nodeColorMap, mergedToCorrectNC,
-              reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect, pendingNetAlignStats_,
-              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
-    }
+//    if (finished) { // Score Report
+//      finished = networkAlignmentStepFour(reducedLinks, mergedLoneNodeIDs, nodeColorMap, mergedToCorrectNC,
+//              reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect, pendingNetAlignStats_,
+//              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2);
+//    }
    
     if (finished) { // Load the alignments
       
@@ -483,11 +483,12 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
         allSmallerNodes.add(ll.getSrcNode());
         allSmallerNodes.add(ll.getTrgNode());
       }
+      
+      NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(nodeColorMap, reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect,
+              mergedToCorrectNC, allLargerNodes, linksLarge, lonersLarge,  allSmallerNodes, mapG1toG2, perfectG1toG2,
+              pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold);
   
-      networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs,
-                               mergedToCorrectNC, nodeColorMap, mapG1toG2, perfectG1toG2,
-                               linksLarge, lonersLarge, pendingNetAlignStats_, outType,
-                               nadi.mode, jaccSimThreshold, idGen, nadi.align, cacheFile);
+      networkAlignmentStepFive(reducedLinks, mergedLoneNodeIDs, nabd, idGen, nadi.align, cacheFile);
     }
     pendingNetAlignStats_ = new NetAlignStats();
     return (true);
@@ -528,25 +529,13 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
    ** Build the network alignment
    */
   
-  private boolean networkAlignmentStepFive(Set<NetNode> allLargerNodes,
-                                           Set<NetNode> allSmallerNodes,
-                                           Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
-                                           Map<NetNode, Boolean> mergedToCorrect, 
-                                           NetworkAlignment.NodeColorMap nodeColorMap,
-                                           Map<NetNode, NetNode> mapG1toG2,
-                                           Map<NetNode, NetNode> perfectMap,
-                                           ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                                           NetAlignStats report, 
-                                           NetworkAlignmentBuildData.ViewType viewType, 
-                                           NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold,
-                                           UniqueLabeller idGen, File align, File holdIt) {
+    private boolean networkAlignmentStepFive(Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
+            NetworkAlignmentBuildData nabd, UniqueLabeller idGen, File align, File holdIt) {
 
     HashMap<NetNode, String> emptyClustMap = new HashMap<NetNode, String>();
 
     BuildData bd = PluginSupportFactory.getBuildDataForPlugin(idGen, reducedLinks, loneNodeIDs, emptyClustMap, null);
     bd.setLayoutMode(Network.LayoutMode.PER_NETWORK_MODE);
-    NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(allLargerNodes, allSmallerNodes, mergedToCorrect, nodeColorMap, report,
-                                                                   viewType, mapG1toG2, perfectMap, linksLarge, lonersLarge, mode, jaccSimThreshold);
     bd.setPluginBuildData(nabd);
   
     try {

@@ -31,6 +31,7 @@ import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
+import org.systemsbiology.biofabric.api.worker.LoopReporter;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /***************************************************************************
@@ -374,8 +375,10 @@ public class JaccardSimilarity {
      ** Create edge list based off Greek methodology;
      */
     
-    private void createGreekEdges() {
+    private void createGreekEdges() throws AsynchExitRequestException {
+      LoopReporter lr = new LoopReporter(allLinksPerfect_.size(), 20, monitor_, 0.0, 1.0, "progress.creatingOracleNetworkLinks");
       for (NetLink link : allLinksPerfect_) {
+        lr.report();
         if (! link.getRelation().equals(NetworkAlignment.EdgeType.FULL_ORPHAN_GRAPH1.tag)) {  // remove bBb edges under Perfect alignment
           addGreekLink(link, perfectToGreek_, colorMapPerfect_);
         }
@@ -398,9 +401,11 @@ public class JaccardSimilarity {
      ** set is obviously a singleton (same philosophy as SIF files)
      */
     
-    private void findLoners() {
+    private void findLoners() throws AsynchExitRequestException {
+      LoopReporter lr = new LoopReporter(allGreekLinks_.size(), 20, monitor_, 0.0, 1.0, "progress.findingLoneNodes");
       Set<GreekNode> visited = new HashSet<GreekNode>();
       for (GreekLink link : allGreekLinks_) {
+        lr.report();
         visited.add(link.src);
         visited.add(link.trg);
       }
@@ -417,8 +422,10 @@ public class JaccardSimilarity {
      ** Create neighbor map
      */
     
-    private void createNeighborMap() {
+    private void createNeighborMap() throws AsynchExitRequestException {
+      LoopReporter lr = new LoopReporter(allGreekLinks_.size(), 20, monitor_, 0.0, 1.0, "progress.generatingStructures");
       for (GreekLink link : allGreekLinks_) {
+        lr.report();
         if (nodeToNeighGreek_.get(link.src) == null) {
           nodeToNeighGreek_.put(link.src, new HashSet<GreekNode>());
         }

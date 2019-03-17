@@ -45,41 +45,58 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
   
   public enum ViewType {GROUP, ORPHAN, CYCLE}
   
+  //
+  // Note the absence of the alignment's link set and lone node set
+  // They are both in the BuildData-of-Plugin Object
+  //
+  
+  public NetworkAlignment.NodeColorMap colorMapMain;
+  
+  public Set<NetLink> allLinksPerfect;
+  public Set<NetNode> loneNodeIDsPerfect;
+  public NetworkAlignment.NodeColorMap colorMapPerfect;
+  
+  public Map<NetNode, Boolean> mergedToCorrectNC;
+  public NodeGroupMap.PerfectNGMode mode;
+  public final Double jaccSimThreshold;
+  
   public ArrayList<NetLink> linksLarge;
   public HashSet<NetNode> lonersLarge;
   public Set<NetNode> allLargerNodes;
   public Set<NetNode> allSmallerNodes;
-  public Map<NetNode, Boolean> mergedToCorrectNC;
-  public NetworkAlignment.NodeColorMap nodeColorMap;
-  public NetworkAlignmentPlugIn.NetAlignStats netAlignStats;
-  public ViewType view;
   public Map<NetNode, NetNode> mapG1toG2;
   public Map<NetNode, NetNode> perfectG1toG2;
+  
+  public ViewType view;
+  public NetworkAlignmentPlugIn.NetAlignStats netAlignStats;
   public List<AlignCycleLayout.CycleBounds> cycleBounds;
-  public NodeGroupMap.PerfectNGMode mode;
-  public Double jaccSimThreshold;
 
-  public NetworkAlignmentBuildData(Set<NetNode> allLargerNodes,
-                                   Set<NetNode> allSmallerNodes,                                 
+  public NetworkAlignmentBuildData(NetworkAlignment.NodeColorMap colorMapMain,
+                                   Set<NetLink> allLinksPerfect, Set<NetNode> loneNodeIDsPerfect,
+                                   NetworkAlignment.NodeColorMap colorMapPerfect,
                                    Map<NetNode, Boolean> mergedToCorrectNC,
-                                   NetworkAlignment.NodeColorMap nodeColorMap,
-                                   NetworkAlignmentPlugIn.NetAlignStats netAlignStats,
-                                   ViewType view,
+                                   Set<NetNode> allLargerNodes,
+                                   ArrayList<NetLink> linksLarge, HashSet<NetNode> loneNodeIDsLarge,
+                                   Set<NetNode> allSmallerNodes,
                                    Map<NetNode, NetNode> mapG1toG2,
                                    Map<NetNode, NetNode> perfectG1toG2,
-                                   ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                                   NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold) {
-
-    this.allLargerNodes = allLargerNodes;
-    this.allSmallerNodes = allSmallerNodes;
-    this.view = view;
-    this.linksLarge = linksLarge;
-    this.lonersLarge = lonersLarge;
+                                   NetworkAlignmentPlugIn.NetAlignStats netAlignStats, ViewType view,
+                                   NodeGroupMap.PerfectNGMode mode, final Double jaccSimThreshold) {
+    this.colorMapMain = colorMapMain;
+    this.allLinksPerfect = allLinksPerfect;
+    this.loneNodeIDsPerfect = loneNodeIDsPerfect;
+    this.colorMapPerfect = colorMapPerfect;
     this.mergedToCorrectNC = mergedToCorrectNC;
-    this.nodeColorMap = nodeColorMap;
-    this.netAlignStats = netAlignStats;
+    
+    this.allLargerNodes = allLargerNodes;
+    this.linksLarge = linksLarge;
+    this.lonersLarge = loneNodeIDsLarge;
+    this.allSmallerNodes = allSmallerNodes;
     this.mapG1toG2 = mapG1toG2;
     this.perfectG1toG2 = perfectG1toG2;
+    
+    this.netAlignStats = netAlignStats;
+    this.view = view;
     this.mode = mode;
     this.jaccSimThreshold = jaccSimThreshold;
   }
