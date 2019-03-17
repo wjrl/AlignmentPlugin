@@ -294,8 +294,8 @@ public class NetworkAlignment {
       if (oldToMerged.get(node) != null) {
         continue;
       }
-      NetNode unalignedName = modifyName(node, type);
-      oldToUnmerged.put(node, unalignedName);
+      NetNode unalignedNewNode = modifyName(node, type);
+      oldToUnmerged.put(node, unalignedNewNode);
       
       // We are dealing with Blue nodes, so if perfect alignment is not aligning
       // the node either, it is correct
@@ -303,7 +303,7 @@ public class NetworkAlignment {
       if (type == GraphType.SMALL && doingPerfectGroup) { // perfect alignment must be provided
         NetNode perfectLarge = perfectG1toG2_.get(node);
         boolean unalignedCorrectly = (perfectLarge == null);
-        mergedToCorrectNC_.put(node, unalignedCorrectly);
+        mergedToCorrectNC_.put(unalignedNewNode, unalignedCorrectly);
       }
     }
     return;
