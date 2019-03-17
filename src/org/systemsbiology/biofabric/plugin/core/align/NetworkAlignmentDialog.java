@@ -592,7 +592,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
   
   public static class NetworkAlignmentDialogInfo {
     
-    public final File graphA, graphB, align, perfect; // graph1 and graph2 can be out of order (size), hence graphA and graphB
+    public final File graph1, graph2, align, perfect; // graphs must be entered in correct order (G1 aligned to G2)
 
     public final NetworkAlignmentBuildData.ViewType analysisType;
     public final NodeGroupMap.PerfectNGMode mode;
@@ -604,8 +604,8 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     public NetworkAlignmentDialogInfo(File graph1, File graph2, File align, File perfect,
                                       NetworkAlignmentBuildData.ViewType analysisType, NodeGroupMap.PerfectNGMode mode,
                                       Double jaccSimThreshold) {
-      this.graphA = graph1;
-      this.graphB = graph2;
+      this.graph1 = graph1;
+      this.graph2 = graph2;
       this.align = align;
       this.perfect = perfect;
       this.analysisType = analysisType;

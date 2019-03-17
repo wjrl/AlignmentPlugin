@@ -25,7 +25,6 @@ package org.systemsbiology.biofabric.plugin.core.align;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +35,6 @@ import org.systemsbiology.biofabric.api.model.NetNode;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
-import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /***************************************************************************
@@ -109,12 +107,11 @@ public class NodeGroupMap {
                       BTProgressMonitor monitor) throws AsynchExitRequestException {
     this(bd.getLinks(), 
     		 bd.getSingletonNodes(), 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mapG1toG2, 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).perfectG1toG2, 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksLarge, 
-    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).colorMapMain,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).allLinksPerfect,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).loneNodeIDsPerfect,
+    		 ((NetworkAlignmentBuildData)bd.getPluginBuildData()).colorMapPerfect,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
-             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).nodeColorMap,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
          nodeGroupOrder, 
@@ -122,27 +119,34 @@ public class NodeGroupMap {
          monitor);
   }
   
-  public NodeGroupMap(Set<NetLink> allLinks, Set<NetNode> loneNodeIDs,
-                      Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
-                      ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                      Map<NetNode, Boolean> mergedToCorrectNC,
-                      NetworkAlignment.NodeColorMap nodeColorMap,
-                      PerfectNGMode mode, final Double jaccSimThreshold,
-                      String[] nodeGroupOrder, String[][] colorMap,
-                      BTProgressMonitor monitor) throws AsynchExitRequestException {
-    this.links_ = allLinks;
-    this.loners_ = loneNodeIDs;
+  public NodeGroupMap(Set<NetLink> allLinksMain, Set<NetNode> loneNodeIDsMain,
+                        NetworkAlignment.NodeColorMap colorMapMain,
+                        Set<NetLink> allLinksPerfect, Set<NetNode> loneNodeIDsPerfect,
+                        NetworkAlignment.NodeColorMap colorMapPerfect,
+                        Map<NetNode, Boolean> mergedToCorrectNC,
+                        PerfectNGMode mode, final Double jaccSimThreshold,
+                        String[] nodeGroupOrder, String[][] colorMap,
+                        BTProgressMonitor monitor) throws AsynchExitRequestException {
+    
+    this.links_ = allLinksMain;
+    this.loners_ = loneNodeIDsMain;
     this.mergedToCorrectNC_ = mergedToCorrectNC;
-    this.nodeColorMap_ = nodeColorMap;
+    this.nodeColorMap_ = colorMapMain;
     this.numGroups_ = nodeGroupOrder.length;
     this.mode_ = mode;
-    if (mode == PerfectNGMode.JACCARD_SIMILARITY) {
-//      this.funcJS_ = new JaccardSimilarity(allLinks, loneNodeIDs, nodeColorMap, jaccSimThreshold, monitor);
-    }
     this.monitor_ = monitor;
     this.nodeToNeighbors_ = new HashMap<NetNode, Set<NetNode>>();
     this.nodeToLinks_ = new HashMap<NetNode, Set<NetLink>>();
     PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(links_, loners_, nodeToNeighbors_, nodeToLinks_, monitor_);
+    
+    if (mode == PerfectNGMode.JACCARD_SIMILARITY) { // create structures for JS involving perfect alignment
+      Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect = new HashMap<NetNode, Set<NetNode>>();
+      Map<NetNode, Set<NetLink>> nodeToLinksPerfect = new HashMap<NetNode, Set<NetLink>>();
+      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(allLinksPerfect, loneNodeIDsPerfect, nodeToNeighborsPerfect, nodeToLinksPerfect, monitor_);
+      
+      this.funcJS_ = new JaccardSimilarity(allLinksMain, loneNodeIDsMain, colorMapMain, allLinksPerfect, loneNodeIDsPerfect,
+              colorMapPerfect, nodeToNeighbors_, nodeToLinks_, nodeToNeighborsPerfect, nodeToLinksPerfect, jaccSimThreshold, monitor);
+    }
     generateOrderMap(nodeGroupOrder);
     generateColorMap(colorMap);
     calcNGRatios();
@@ -225,15 +229,14 @@ public class NodeGroupMap {
     
     if (mode_ != PerfectNGMode.NONE) {   // perfect NG mode is activated
       sb.append("/");
-      if (mergedToCorrectNC_.get(node) == null) {   // red node
+      if (mergedToCorrectNC_.get(node) == null) {
         sb.append(0);
       } else {
         boolean isCorrect;
         if (mode_ == PerfectNGMode.NODE_CORRECTNESS) {
           isCorrect = mergedToCorrectNC_.get(node);
         } else if (mode_ == PerfectNGMode.JACCARD_SIMILARITY) {
-          throw (new IllegalStateException());
-//          isCorrect = funcJS_.isCorrectJS(node);
+          isCorrect = funcJS_.isCorrectJS(node);
         } else {
           throw new IllegalStateException("Incorrect mode for Perfect NGs Group Map");
         }
@@ -430,207 +433,146 @@ public class NodeGroupMap {
     }
     
   }
+  
+  ////////////////////////////////////////////////////////////////////////////
+  //
+  // PUBLIC CONSTANTS
+  //
+  ////////////////////////////////////////////////////////////////////////////
+  
+  public static final String[] nodeGroupOrder;
+  public static final String[][] nodeGroupAnnots = {  // Dark colors used for Purple nodes with any blue neighbors
+          {"(P:0)",         "GrayBlue"},              // Normal colors used for original purple and red nodes (no blue nodes)
+          {"(P:P)",         "Orange"},
+          {"(P:pBp)",       "Yellow"},
+          {"(P:pBb)",       "DarkPeach"},
+          {"(P:pBp/pBb)",   "DarkPowderBlue"},
+          {"(P:pRp)",           "Green"},
+          {"(P:P/pBp)",         "Purple"},
+          {"(P:P/pBb)",         "DarkOrange"},
+          {"(P:P/pBp/pBb)",     "DarkYellow"},
+          {"(P:P/pRp)",         "Pink"},
+          {"(P:pBp/pRp)",       "PowderBlue"},
+          {"(P:pBb/pRp)",       "DarkGreen"},
+          {"(P:pBp/pBb/pRp)",   "DarkPurple"},
+          {"(P:P/pBp/pRp)",     "Peach"},
+          {"(P:P/pBb/pRp)",     "DarkGrayBlue"},
+          {"(P:P/pBp/pBb/pRp)", "DarkPink"},
+          {"(P:pRr)",           "GrayBlue"},
+          {"(P:P/pRr)",         "Orange"},
+          {"(P:pBp/pRr)",       "Yellow"},
+          {"(P:pBb/pRr)",       "DarkPowderBlue"},
+          {"(P:pBp/pBb/pRr)",   "DarkPeach"},
+          {"(P:pRp/pRr)",           "Green"},
+          {"(P:P/pBp/pRr)",         "Purple"},
+          {"(P:P/pBb/pRr)",         "DarkGrayBlue"},
+          {"(P:P/pBp/pBb/pRr)",     "DarkOrange"},
+          {"(P:P/pRp/pRr)",         "Pink"},
+          {"(P:pBp/pRp/pRr)",       "PowderBlue"},
+          {"(P:pBb/pRp/pRr)",       "DarkYellow"},
+          {"(P:pBp/pBb/pRp/pRr)",   "DarkPurple"},
+          {"(P:P/pBp/pRp/pRr)",     "Peach"},
+          {"(P:P/pBb/pRp/pRr)",     "DarkPink"},
+          {"(P:P/pBp/pBb/pRp/pRr)", "DarkGreen"},
+          {"(B:pBb)",               "PowderBlue"},
+          {"(B:bBb)",               "Purple"},
+          {"(B:pBb/bBb)",           "Pink"},
+          {"(B:0)",                 "Peach"},
+          {"(R:pRr)",           "GrayBlue"},
+          {"(R:rRr)",           "Orange"},
+          {"(R:pRr/rRr)",       "Yellow"},
+          {"(R:0)",             "Green"}
+  };
+  public static final String[] nodeGroupOrderPerfectNG;
+  public static final String[][] nodeGroupAnnotsPerfectNG = {  // Complement color used for 'incorrect' node group
+          {"(P:0/1)",         "GrayBlue"},
+          {"(P:0/0)",         "DarkGrayBlue"},
+          {"(P:P/1)",         "Orange"},
+          {"(P:P/0)",         "DarkOrange"},
+          {"(P:pBp/1)",       "Yellow"},
+          {"(P:pBp/0)",       "DarkYellow"},
+          {"(P:pBb/1)",       "DarkPeach"},
+          {"(P:pBb/0)",       "Peach"},
+          {"(P:pBp/pBb/1)",   "DarkPowderBlue"},
+          {"(P:pBp/pBb/0)",   "PowderBlue"},
+          {"(P:pRp/1)",           "Green"},
+          {"(P:pRp/0)",           "DarkGreen"},
+          {"(P:P/pBp/1)",         "Purple"},
+          {"(P:P/pBp/0)",         "DarkPurple"},
+          {"(P:P/pBb/1)",         "DarkOrange"},
+          {"(P:P/pBb/0)",         "Orange"},
+          {"(P:P/pBp/pBb/1)",     "DarkYellow"},
+          {"(P:P/pBp/pBb/0)",     "Yellow"},
+          {"(P:P/pRp/1)",         "Pink"},
+          {"(P:P/pRp/0)",         "DarkPink"},
+          {"(P:pBp/pRp/1)",       "PowderBlue"},
+          {"(P:pBp/pRp/0)",       "DarkPowderBlue"},
+          {"(P:pBb/pRp/1)",       "DarkGreen"},
+          {"(P:pBb/pRp/0)",       "Green"},
+          {"(P:pBp/pBb/pRp/1)",   "DarkPurple"},
+          {"(P:pBp/pBb/pRp/0)",   "Purple"},
+          {"(P:P/pBp/pRp/1)",     "Peach"},
+          {"(P:P/pBp/pRp/0)",     "DarkPeach"},
+          {"(P:P/pBb/pRp/1)",     "DarkGrayBlue"},
+          {"(P:P/pBb/pRp/0)",     "GrayBlue"},
+          {"(P:P/pBp/pBb/pRp/1)", "DarkPink"},
+          {"(P:P/pBp/pBb/pRp/0)", "Pink"},
+          {"(P:pRr/1)",           "GrayBlue"},
+          {"(P:pRr/0)",           "DarkGrayBlue"},
+          {"(P:P/pRr/1)",         "Orange"},
+          {"(P:P/pRr/0)",         "DarkOrange"},
+          {"(P:pBp/pRr/1)",       "Yellow"},
+          {"(P:pBp/pRr/0)",       "DarkYellow"},
+          {"(P:pBb/pRr/1)",       "DarkPowderBlue"},
+          {"(P:pBb/pRr/0)",       "PowderBlue"},
+          {"(P:pBp/pBb/pRr/1)",   "DarkPeach"},
+          {"(P:pBp/pBb/pRr/0)",   "Peach"},
+          {"(P:pRp/pRr/1)",           "Green"},
+          {"(P:pRp/pRr/0)",           "DarkGreen"},
+          {"(P:P/pBp/pRr/1)",         "Purple"},
+          {"(P:P/pBp/pRr/0)",         "DarkPurple"},
+          {"(P:P/pBb/pRr/1)",         "DarkGrayBlue"},
+          {"(P:P/pBb/pRr/0)",         "GrayBlue"},
+          {"(P:P/pBp/pBb/pRr/1)",     "DarkOrange"},
+          {"(P:P/pBp/pBb/pRr/0)",     "Orange"},
+          {"(P:P/pRp/pRr/1)",         "Pink"},
+          {"(P:P/pRp/pRr/0)",         "DarkPink"},
+          {"(P:pBp/pRp/pRr/1)",       "PowderBlue"},
+          {"(P:pBp/pRp/pRr/0)",       "DarkPowderBlue"},
+          {"(P:pBb/pRp/pRr/1)",       "DarkYellow"},
+          {"(P:pBb/pRp/pRr/0)",       "Yellow"},
+          {"(P:pBp/pBb/pRp/pRr/1)",   "DarkPurple"},
+          {"(P:pBp/pBb/pRp/pRr/0)",   "Purple"},
+          {"(P:P/pBp/pRp/pRr/1)",     "Peach"},
+          {"(P:P/pBp/pRp/pRr/0)",     "DarkPeach"},
+          {"(P:P/pBb/pRp/pRr/1)",     "DarkPink"},
+          {"(P:P/pBb/pRp/pRr/0)",     "Pink"},
+          {"(P:P/pBp/pBb/pRp/pRr/1)", "DarkGreen"},
+          {"(P:P/pBp/pBb/pRp/pRr/0)", "Green"},
+          {"(B:pBb/1)",               "PowderBlue"},
+          {"(B:pBb/0)",               "DarkPowderBlue"},
+          {"(B:bBb/1)",               "Purple"},
+          {"(B:bBb/0)",               "DarkPurple"},
+          {"(B:pBb/bBb/1)",           "Pink"},
+          {"(B:pBb/bBb/0)",           "DarkPink"},
+          {"(B:0/1)",                 "Peach"},
+          {"(B:0/0)",                 "DarkPeach"},
+          {"(R:pRr/0)",           "GrayBlue"},
+          {"(R:rRr/0)",           "Orange"},
+          {"(R:pRr/rRr/0)",       "Yellow"},
+          {"(R:0/0)",             "Green"}
+  };
+  
+  static {  // create the node group order from the annot color list
+    nodeGroupOrder = new String[NodeGroupMap.nodeGroupAnnots.length];
+    for (int i = 0; i < NodeGroupMap.nodeGroupOrder.length; i++) {
+      NodeGroupMap.nodeGroupOrder[i] = NodeGroupMap.nodeGroupAnnots[i][0];
+    }
+    
+    nodeGroupOrderPerfectNG = new String[NodeGroupMap.nodeGroupAnnotsPerfectNG.length];
+    for (int i = 0; i < NodeGroupMap.nodeGroupOrderPerfectNG.length; i++) {
+      NodeGroupMap.nodeGroupOrderPerfectNG[i] = NodeGroupMap.nodeGroupAnnotsPerfectNG[i][0];
+    }
+  }
+  
 }
-
-//static class JaccardSimilarityFunc {
-//
-//  private Map<NetNode, NetNode> mapG1toG2_;
-//  private Map<NetNode, NetNode> perfectG1toG2_;
-//  private ArrayList<NetLink> linksLarge_;
-//  private HashSet<NetNode> lonersLarge_;
-//  private Map<String, NetNode> nameToLarge_;
-//  private Map<NetNode, Set<NetNode>> nodeToNeighL;
-//  private BTProgressMonitor monitor_;
-//  //    private final Double jaccSimThreshold_;
-//  private Double jaccSimThreshold_;
-//
-//  //    final Map<NetNode, NetNode> entrezAlign;
-//  Map<NetNode, NetNode> entrezAlign;
-//
-//  Map<String, Set<String>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
-////    Map<String, NetNode> graph1NodesMain_, graph1NodesPerfect_;
-//
-//
-////    private Map<NetNode, Set<NetNode>> nodeToNeighborsMain, nodeToNeighborsPerfect;
-////    private Map<String, NetNode> graph1NodesMain, graph1NodesPerfect;
-//
-//  JaccardSimilarityFunc(Map<NetNode, NetNode> mapG1toG2,
-//                        Map<NetNode, NetNode> perfectG1toG2,
-//                        ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-//                        final Double jaccSimThreshold, BTProgressMonitor monitor)
-//          throws AsynchExitRequestException {
-//    this.mapG1toG2_ = mapG1toG2;
-//    this.perfectG1toG2_ = perfectG1toG2;
-//    this.entrezAlign = new HashMap<NetNode, NetNode>();
-//    this.nodeToNeighL = new HashMap<NetNode, Set<NetNode>>();
-//    this.linksLarge_ = linksLarge;
-//    this.lonersLarge_ = lonersLarge;
-//    this.nameToLarge_ = new HashMap<String, NetNode>();
-//    this.jaccSimThreshold_ = jaccSimThreshold;
-//    this.monitor_ = monitor;
-//    makeNodeToNeighL();
-//    constructEntrezAlign();
-//    constructLargeMap();
-//  }
-//
-//  JaccardSimilarityFunc(Map<String, Set<String>> nodeToNeighborsMain,
-//                        Map<String, Set<String>> nodeToNeighborsPerfect,
-//                        Map<String, NetNode> graph1NodesMain,
-//                        Map<String, NetNode> graph1NodesPerfect) {
-//    // use strings from the blue nodes and first half of purple nodes for JS
-//
-//    this.nodeToNeighborsMain_ = nodeToNeighborsMain;
-////      this.graph1NodesMain_ = graph1NodesMain;
-//    this.nodeToNeighborsPerfect_ = nodeToNeighborsPerfect;
-////      this.graph1NodesPerfect_ = graph1NodesPerfect;
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** @param node must be an Aligned Node
-//   ** Checks if two aligned-'large graph'-nodes have same neighbors
-//   */
-//
-//  boolean isCorrectJS(NetNode node) {
-//
-////      String largeName = (node.getName().split("::"))[1];
-////
-////      NetNode largeNode = nameToLarge_.get(largeName);
-////      if (largeNode == null) {
-////        throw new IllegalStateException("Large node for " + node.getName() + " not found for Jaccard Similarity");
-////      }
-////      NetNode match = entrezAlign.get(largeNode);
-////
-////      double jsVal = jaccSimValue(largeNode, match);
-////      if (jaccSimThreshold_ == null) {
-////        throw new IllegalStateException("JS Threshold is null"); // should never happen
-////      }
-////      boolean isCorrect = Double.compare(jsVal, jaccSimThreshold_) >= 0;
-////      return (isCorrect);
-//    throw (new IllegalStateException());
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Jaccard Similarity between two nodes in V12 of G12=(V12,E12); sigma(x,y)
-//   ** @param node, match - both MUST be V12 nodes (Blue, Purple, or Red)
-//   */
-//
-////    double jaccSimValue(NetNode node, NetNode match) {
-//  double jaccSimValue(String node, String match) {
-//    int lenAdjust = 0;
-////      HashSet<NetNode> scratchNode = new HashSet<NetNode>(nodeToNeighL.get(node));
-////      HashSet<NetNode> scratchMatch = new HashSet<NetNode>(nodeToNeighL.get(match));
-//
-//    HashSet<String> scratchNode = new HashSet<String>(nodeToNeighborsMain_.get(node));
-//    HashSet<String> scratchMatch = new HashSet<String>(nodeToNeighborsPerfect_.get(match));
-//
-//    if (scratchNode.contains(match)) {
-//      scratchNode.remove(match);
-//      scratchMatch.remove(node);
-//      lenAdjust = 1;
-//    }
-//
-////      HashSet<NetNode> union = new HashSet<NetNode>(), intersect = new HashSet<NetNode>();
-//    HashSet<String> union = new HashSet<String>(), intersect = new HashSet<String>();
-//    union(scratchNode, scratchMatch, union);
-//    intersection(scratchNode, scratchMatch, intersect);
-//
-//    int iSize = intersect.size() + lenAdjust;
-//    int uSize = union.size() + lenAdjust;
-//    Double jaccard = (double)(iSize) / (double)uSize;
-//    if (jaccard.isNaN()) {  // case of 0/0 for two singletons
-//      jaccard = 1.0;
-//    }
-//    return (jaccard);
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Make Large Graph "node's name" to "node" map
-//   */
-//
-//  private void constructLargeMap() {
-//    Set<NetNode> nodesLarge = null;
-//    try {
-//      nodesLarge = PluginSupportFactory.getBuildExtractor().extractNodes(linksLarge_, lonersLarge_, monitor_);
-//    } catch (AsynchExitRequestException aere) {
-//      // should not happen;
-//    }
-//    for (NetNode nodeL : nodesLarge) {
-//      nameToLarge_.put(nodeL.getName(), nodeL);
-//    }
-//    return;
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Match up G2-aligned nodes with G2-aligned nodes in perfect alignment
-//   */
-//
-//  private void constructEntrezAlign() {
-//    for (NetNode node : mapG1toG2_.keySet()) {
-//      NetNode perfMatch = perfectG1toG2_.get(node);
-//      if (perfMatch == null) {
-//        continue;
-//      }
-//      NetNode mainMatch = mapG1toG2_.get(node);
-//      entrezAlign.put(mainMatch, perfMatch);
-//    }
-//    return;
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Construct node to neighbor map
-//   */
-//
-//  private void makeNodeToNeighL() throws AsynchExitRequestException {
-//    LoopReporter lr = new LoopReporter(linksLarge_.size(), 20, monitor_, 0.0, 1.0, "progress.generatingJaccardStructures");
-//    nodeToNeighL = new HashMap<NetNode, Set<NetNode>>();
-//
-//    for (NetLink link : linksLarge_) {
-//      lr.report();
-//      NetNode src = link.getSrcNode(), trg = link.getTrgNode();
-//
-//      if (nodeToNeighL.get(src) == null) {
-//        nodeToNeighL.put(src, new HashSet<NetNode>());
-//      }
-//      if (nodeToNeighL.get(trg) == null) {
-//        nodeToNeighL.put(trg, new HashSet<NetNode>());
-//      }
-//      nodeToNeighL.get(src).add(trg);
-//      nodeToNeighL.get(trg).add(src);
-//    }
-//
-//    for (NetNode node : lonersLarge_) {
-//      nodeToNeighL.put(node, new HashSet<NetNode>());
-//    }
-//    return;
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Set intersection helper
-//   */
-//
-//  private <T> void intersection(Set<T> one, Set<T> two, Set<T> result) {
-//    result.clear();
-//    result.addAll(one);
-//    result.retainAll(two);
-//    return;
-//  }
-//
-//  /***************************************************************************
-//   **
-//   ** Set union helper
-//   */
-//
-//  private <T> void union(Set<T> one, Set<T> two, Set<T> result) {
-//    result.clear();
-//    result.addAll(one);
-//    result.addAll(two);
-//    return;
-//  }
-//
-//}
