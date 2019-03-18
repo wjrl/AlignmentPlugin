@@ -1,5 +1,5 @@
 /*
-**    Copyright (C) 2003-2018 Institute for Systems Biology 
+**    Copyright (C) 2003-2019 Institute for Systems Biology 
 **                            Seattle, Washington, USA. 
 **
 **    This library is free software; you can redistribute it and/or
@@ -41,8 +41,6 @@ import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
 import org.systemsbiology.biofabric.api.worker.BTProgressMonitor;
 import org.systemsbiology.biofabric.api.worker.LoopReporter;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
-import org.systemsbiology.biofabric.ui.FabricDisplayOptions;
-import org.systemsbiology.biofabric.ui.FabricDisplayOptionsManager;
 import org.systemsbiology.biofabric.util.UiUtil;
 
 /****************************************************************************
@@ -352,23 +350,16 @@ public class AlignCycleLayout extends NodeLayout {
             PathElem nodeKey = nodesToPathElem.get(node);
             AlignPath ac = alignPaths.get(nodeKey);
             ArrayList<NetNode> queue = new ArrayList<NetNode>();
-            if (ac == null) {
-            	UiUtil.fixMePrintout("Is this case real??");
-              targsToGo.remove(node);
-              targets.add(node);
-              queue.add(node); 
-            } else {
-              List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
-              for (PathElem ulnode : unlooped) { 
-                NetNode daNode = pathElemToNode.get(ulnode);
-                targsToGo.remove(daNode);
-                targets.add(daNode);
-                queue.add(daNode);
-              }
-              NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
-              NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
-              cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
+            List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(nodeKey);
+            for (PathElem ulnode : unlooped) { 
+              NetNode daNode = pathElemToNode.get(ulnode);
+              targsToGo.remove(daNode);
+              targets.add(daNode);
+              queue.add(daNode);
             }
+            NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
+            NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
+            cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
             flushQueue(targets, targsPerSource, linkCounts, targsToGo, queue, alignPaths, nodesToPathElem,
                        pathElemToNode, cycleBounds, monitor,  0.75, 1.0);
           }
@@ -485,35 +476,19 @@ public class AlignCycleLayout extends NodeLayout {
       while (ktpit.hasNext()) {  
         NetNode kid = ktpit.next();
         if (targsToGo.contains(kid)) {
-          // here we add the entire cycle containing the kid. If kid is not in a cycle (unaligned), we just add
-          // kid. If not a cycle but a path, we add the first kid in the path, then all following kids. If a cycle,
-          // we start with the kid, and loop back around to the kid in front of us.
-          // nodesToPathElem is of form NetNode(G1:G2) -> "G1"
           PathElem kidKey = nodesToPathElem.get(kid);
           AlignPath ac = alignPaths.get(kidKey);
-          UiUtil.fixMePrintout("drop this: outdated!");
-          if (ac == null) {
-          	//
-            // THIS IS WHERE NON-PATH RED NODES HAVE ALWAYS BEEN ADDED!
-          	// BLUE NODES SHOULD GO IN HERE AS WELL!
-            //
-            targsToGo.remove(kid);
-            targets.add(kid);
-            queue.add(kid);    
-          } else {
-            targsToGo.removeAll(ac.pathNodes);
-            List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(kidKey);
-            for (PathElem ulnode : unlooped) { 
-              NetNode daNode = pathElemToNode.get(ulnode);
-              targsToGo.remove(daNode);
-              targets.add(daNode);
-              queue.add(daNode);
-            }
-            
-            NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
-            NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
-            cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
+          targsToGo.removeAll(ac.pathNodes);
+          List<PathElem> unlooped = ac.getReorderedKidsStartingAtKidOrStart(kidKey);
+          for (PathElem ulnode : unlooped) { 
+            NetNode daNode = pathElemToNode.get(ulnode);
+            targsToGo.remove(daNode);
+            targets.add(daNode);
+            queue.add(daNode);
           }
+          NetNode boundsStart = pathElemToNode.get(unlooped.get(0));
+          NetNode boundsEnd = pathElemToNode.get(unlooped.get(unlooped.size() - 1));
+          cycleBounds.add(new CycleBounds(boundsStart, boundsEnd, ac.correct, ac.isCycle));
         }
       }
     }
