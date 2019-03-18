@@ -83,6 +83,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   private BackgroundWorkerControlManager bwcm_;
   private String className_;
   private PluginResourceManager rMan_;
+  private PlugInNetworkModelAPI api_;
   
   
   ////////////////////////////////////////////////////////////////////////////
@@ -172,6 +173,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     flf_ = api.getFileUtilities();
     topWindow_ = api.getTopWindow();
     bwcm_ = api.getBWCtrlMgr();
+    api_ = api;
 
     for (BioFabricToolPlugInCmd cmd : myCmds_) {
       ((Enabler)cmd).setEnabled(true);
@@ -429,6 +431,9 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
               JOptionPane.WARNING_MESSAGE);
     }
   
+    System.out.println("FIX ME FIX ME FIX ME: Can turn off shadow question here!");
+    
+    
     if (finished) { // for main alignment      
       finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, false);
     }
@@ -462,7 +467,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       }
       NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(nodeColorMap, reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect,
               mergedToCorrectNC, allLargerNodes, linksLarge, lonersLarge,  allSmallerNodes, mapG1toG2, perfectG1toG2,
-              pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold);
+              pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold, nadi.useNodeGroups, nadi.turnOnShadows);
   
       networkAlignmentStepFive(reducedLinks, mergedLoneNodeIDs, nabd, idGen, nadi.align, cacheFile);
     }
@@ -701,6 +706,25 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       if (filesNotOkay) {
         return (false);
       }
+      
+      //
+      // With this layout, shadow links can really help, since we do not draw link group annotations if shadows
+      // are not present. So provide the user with the opportunity to force shadow links to be on.
+      //
+      
+      if (!api_.getDisplayShadows()) {
+        ShadowsAndGroupsDialog sagd = new ShadowsAndGroupsDialog(topWindow_, rMan_);
+        sagd.setVisible(true);
+      
+        if (!sagd.haveResult()) {
+          return (false);
+        }
+        nai.turnOnShadows = sagd.turnShadowsOn();
+        nai.useNodeGroups = !nai.turnOnShadows;
+      } else {
+      	nai.useNodeGroups = false;
+      }
+
       return (networkAlignmentFromSources(nai, NetworkAlignmentBuildData.ViewType.CYCLE));
     }
     
