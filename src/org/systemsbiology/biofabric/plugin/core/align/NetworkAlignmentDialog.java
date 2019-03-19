@@ -84,7 +84,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
   
   public NetworkAlignmentDialog(JFrame parent, NetworkAlignmentBuildData.ViewType analysisType, 
   		                          String pluginClassName, FileLoadFlows flf, PluginResourceManager rMan) {
-    super(parent, rMan.getPluginString("networkAlignment.title"), new Dimension(700, 450), 3);
+    super(parent, rMan.getPluginString("networkAlignment.title"), new Dimension(700, 500), 3);
         
     this.parent_ = parent;
     this.analysisType_ = analysisType;
@@ -140,10 +140,10 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     JPanel panGraphInfoTwo = null;
     switch (analysisType_) {
       case ORPHAN:
-        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageNonGroup")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.message")));
         break;
       case CYCLE:
-        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageNonGroup")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.message")));
         panGraphInfoTwo = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panGraphInfoTwo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageCycleTwo")));
         break;
@@ -163,6 +163,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     }
     addWidgetFullRow(panGraphConfirm, true);
     addLabeledFileBrowse(graph1FileMatch, graph1Field_, graph1Browse);
+    addWidgetFullRow(new JLabel(rMan_.getPluginString("networkAlignment.hasBeen"), SwingConstants.CENTER), true);
     addLabeledFileBrowse(graph2FileMatch, graph2Field_, graph2Browse);
     addLabeledFileBrowse(alignFileMatch, alignField_, alignmentBrowse);
   

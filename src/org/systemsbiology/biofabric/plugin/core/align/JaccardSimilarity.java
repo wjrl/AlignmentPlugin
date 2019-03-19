@@ -448,7 +448,7 @@ public class JaccardSimilarity {
    ** Abstraction Node for Oracle Network
    */
   
-  private static class GreekNode implements Comparable {
+  private static class GreekNode implements Comparable<GreekNode> {
     
     final String name;
     
@@ -481,9 +481,7 @@ public class JaccardSimilarity {
       return (name);
     }
     
-    @Override
-    public int compareTo(Object o) {
-      GreekNode gn = (GreekNode) o;
+    public int compareTo(GreekNode gn) {
       return (name.compareTo(gn.name));
     }
     

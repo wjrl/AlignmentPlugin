@@ -430,15 +430,16 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
               rMan_.getPluginString("networkAlignment.emptyNetworkTitle"),
               JOptionPane.WARNING_MESSAGE);
     }
-  
-    System.out.println("FIX ME FIX ME FIX ME: Can turn off shadow question here!");
     
-    
-    if (finished) { // for main alignment      
-      finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, false);
+    if (finished) { // for main alignment
+    	// If we have just singletons, we can skip the shadow question (though with no links it will not
+    	// be asked anyway. More importantly, if user forced it on previously, don't ask again.
+    	boolean skip_shadows = (mergedLinks.isEmpty() || nadi.turnOnShadows);
+      finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, skip_shadows);
     }
     
     if (finished && doingPerfectGroup) { // for perfect alignment
+    	// Doing this a second time, we want to shut up the question about turning on shadow links (just got asked)
       finished = flf_.handleDirectionsDupsAndShadows(mergedLinksPerfect, mergedLoneNodeIDsPerfect, false, relMapPerfect, 
       																							 reducedLinksPerfect, cacheFile, true, true);
     }

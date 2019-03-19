@@ -68,7 +68,7 @@ public class ShadowsAndGroupsDialog extends BTStashResultsDialog {
   */ 
   
   public ShadowsAndGroupsDialog(JFrame parent, PluginResourceManager rMan) {     
-    super(parent, rMan.getPluginString("shadowAndGroups.title"), new Dimension(400, 200), 2);
+    super(parent, rMan.getPluginString("shadowAndGroups.title"), new Dimension(800, 200), 2);
    
    final String ngMsg = rMan.getPluginString("shadowAndGroups.nodeGroups");
    final String lgMsg = rMan.getPluginString("shadowAndGroups.linkGroups");
