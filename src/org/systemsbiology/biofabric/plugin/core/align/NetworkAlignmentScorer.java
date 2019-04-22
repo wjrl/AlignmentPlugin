@@ -68,8 +68,12 @@ public class NetworkAlignmentScorer {
   private NetworkAlignment.NodeColorMap nodeColorMapMain_, nodeColorMapPerfect_;
   private Map<NetNode, Boolean> mergedToCorrectNC_;
   
+  private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
+  private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
+  private NodeGroupMap groupMapMain_, groupMapPerfect_;
+  
   //
-  // This are from original untouched graphs and alignments - Not Used at all
+  // This are from original untouched graphs and alignments
   //
   
   private ArrayList<NetLink> linksSmall_, linksLarge_;
@@ -78,10 +82,6 @@ public class NetworkAlignmentScorer {
   
   private BTProgressMonitor monitor_;
   private PluginResourceManager rMan_;
-  
-  private Map<NetNode, Set<NetLink>> nodeToLinksMain_, nodeToLinksPerfect_;
-  private Map<NetNode, Set<NetNode>> nodeToNeighborsMain_, nodeToNeighborsPerfect_;
-  private NodeGroupMap groupMapMain_, groupMapPerfect_;
   
   //
   // The scores
@@ -126,17 +126,21 @@ public class NetworkAlignmentScorer {
     this.perfectG1toG2_ = perfectG1toG2;
     
     // Create Node Group Map to use for NGS/LGS
-    this.groupMapMain_ = new NodeGroupMap(linksMain_, loneNodeIDsMain_, nodeColorMapMain_, linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_,
-            mergedToCorrectNC_, NodeGroupMap.PerfectNGMode.NONE, null, NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
+    this.groupMapMain_ = new NodeGroupMap(linksMain_, loneNodeIDsMain_, nodeColorMapMain_,
+            linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_,
+            mergedToCorrectNC_, NodeGroupMap.PerfectNGMode.NONE, null,
+            linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2,
+            NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
     if (mergedToCorrectNC != null) {
-      // investigate parameters
-      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, null, null, null, null,
-              NodeGroupMap.PerfectNGMode.NONE, null, NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
+      this.groupMapPerfect_ = new NodeGroupMap(linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, null, null, null, null, NodeGroupMap.PerfectNGMode.NONE, null,
+              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2,
+              NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
     }
     
     removeDuplicateAndShadow();
     // Generate Structures
-    PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(linksMain_, loneNodeIDsMain_, nodeToNeighborsMain_, nodeToLinksMain_, monitor_);
+    PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(linksMain_, loneNodeIDsMain_,
+            nodeToNeighborsMain_, nodeToLinksMain_, monitor_);
   
     if (mergedToCorrectNC != null) {
       PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(linksPerfect_, loneNodeIDsPerfect_,
@@ -299,7 +303,8 @@ public class NetworkAlignmentScorer {
   private void calcJaccardSimilarity() throws AsynchExitRequestException {
     this.JaccSim = (new JaccardSimilarity(linksMain_, loneNodeIDsMain_, nodeColorMapMain_,
             linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, nodeToNeighborsMain_, nodeToLinksMain_,
-            nodeToNeighborsPerfect_, nodeToLinksPerfect_, null, monitor_)).calcScore();
+            nodeToNeighborsPerfect_, nodeToLinksPerfect_, linksSmall_, lonersSmall_, linksLarge_, lonersLarge_,
+            mapG1toG2_, perfectG1toG2_, null, monitor_)).calcScore();
     return;
   }
   
