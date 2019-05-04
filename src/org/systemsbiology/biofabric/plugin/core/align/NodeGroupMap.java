@@ -39,26 +39,12 @@ import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /***************************************************************************
  **
- ** HashMap based Data structure
+ ** HashMap based data structure
  **
+ ** There are 40 DISTINCT Node Groups for aligned and unaligned nodes
+ ** There are 76 DISTINCT Node Groups for aligned and unaligned nodes with Perfect NGs
  **
- ** LG = LINK GROUP
- **
- ** FIRST LG   = PURPLE EDGES           // COVERERED EDGE
- ** SECOND LG  = BLUE EDGES             // INDUCED_GRAPH1
- ** THIRD LG   = CYAN EDGES             // HALF_ORPHAN_GRAPH1       (TECHNICALLY BLUE EDGES)
- ** FOURTH LG  = GREEN EDGES            // FULL_ORPHAN_GRAPH1       (TECHNICALLY BLUE EDGES)
- ** FIFTH LG   = RED EDGES              // INDUCED_GRAPH2
- ** SIXTH LG   = ORANGE EDGES           // HALF_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
- ** SEVENTH LG = YELLOW EDGES           // FULL_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
- **
- ** PURPLE NODE =  ALIGNED NODE
- ** BLUE NODE   =  ORPHAN (UNALIGNED) BLUE NODE
- ** RED NODE    =  UNALIGNED NODE
- **
- **
- ** WE HAVE 40 DISTINCT CLASSES (NODE GROUPS) FOR EACH ALIGNED AND UNALIGNED NODE
- **
+ ** With Perfect NodeGroups activated, the correctness of a node is determined by either NC or JS
  */
 
 public class NodeGroupMap {

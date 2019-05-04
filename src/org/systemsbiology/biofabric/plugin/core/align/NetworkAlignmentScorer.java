@@ -131,7 +131,7 @@ public class NetworkAlignmentScorer {
             mergedToCorrectNC_, NodeGroupMap.PerfectNGMode.NONE, null,
             linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2,
             NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);
-    if (mergedToCorrectNC != null) {
+    if (mergedToCorrectNC != null) { // perfect alignment processing does not need a 'perfect' alignment
       this.groupMapPerfect_ = new NodeGroupMap(linksPerfect_, loneNodeIDsPerfect_, nodeColorMapPerfect_, null, null, null, null, NodeGroupMap.PerfectNGMode.NONE, null,
               linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2,
               NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor_);

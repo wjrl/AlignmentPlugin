@@ -54,7 +54,7 @@ public class JaccardSimilarity {
   private ArrayList<NetLink> linksSmall_, linksLarge_;
   private HashSet<NetNode> lonersSmall_, lonersLarge_;
   private Map<NetNode, NetNode> mapG1toG2_, perfectG1toG2_;
-  private Map<NetNode, NetNode> invMainG2toG1_, invPerfG2toG1_;
+  private Map<NetNode, NetNode> invMainG2toG1_, invPerfectG2toG1_;
   
   private Map<NetNode, Set<NetNode>> nodeToNeighSmall_, nodeToNeighLarge_;
   private Map<String, NetNode> nameToSmall_;
@@ -124,9 +124,9 @@ public class JaccardSimilarity {
     bex.createNeighborLinkMap(linksLarge_, lonersLarge_, nodeToNeighLarge_, new HashMap<NetNode, Set<NetLink>>(), monitor_);
     
     invMainG2toG1_ = new HashMap<NetNode, NetNode>();
-    invPerfG2toG1_ = new HashMap<NetNode, NetNode>();
+    invPerfectG2toG1_ = new HashMap<NetNode, NetNode>();
     makeInverseMap(mapG1toG2_, invMainG2toG1_);
-    makeInverseMap(perfectG1toG2_, invPerfG2toG1_);
+    makeInverseMap(perfectG1toG2_, invPerfectG2toG1_);
     
     nameToSmall_ = new HashMap<String, NetNode>();
     Set<NetNode> smallNodes = PluginSupportFactory.getBuildExtractor().extractNodes(linksSmall_, lonersSmall_, monitor_);
@@ -248,7 +248,7 @@ public class JaccardSimilarity {
     NetNode nodeG1Match;
     if (type == CaseType.PERFECT_BLUE_MAIN_PURPLE) {
       NetNode nodeG2Main = mapG1toG2_.get(nodeG1);
-      nodeG1Match = invPerfG2toG1_.get(nodeG2Main);
+      nodeG1Match = invPerfectG2toG1_.get(nodeG2Main);
     } else if (type == CaseType.PERFECT_PURPLE_MAIN_BLUE) {
       NetNode nodeG2Perf = perfectG1toG2_.get(nodeG1);
       nodeG1Match = invMainG2toG1_.get(nodeG2Perf);
