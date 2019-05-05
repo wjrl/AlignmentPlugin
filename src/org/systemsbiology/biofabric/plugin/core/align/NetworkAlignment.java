@@ -42,10 +42,26 @@ import org.systemsbiology.biofabric.api.worker.LoopReporter;
 import org.systemsbiology.biofabric.io.BuildExtractorImpl;
 import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
-/****************************************************************************
+/***************************************************************************
  **
- ** This merges two individual graphs and an alignment to form the
- ** network alignment
+ ** This class merges two individual graphs G1 and G2 with an alignment to form the
+ ** network-alignment network.
+ **
+ ** LG = LINK GROUP
+ ** NG = NODE GROUP
+ **
+ ** FIRST LG   = COVERED EDGE             (PURPLE EDGES)
+ ** SECOND LG  = INDUCED_GRAPH1           (BLUE EDGES)
+ ** THIRD LG   = HALF_ORPHAN_GRAPH1       (BLUE EDGES  - sometimes referred to in speech as CYAN edges)
+ ** FOURTH LG  = FULL_ORPHAN_GRAPH1       (BLUE EDGES  - sometimes referred to in speech as GREEN edges)
+ ** FIFTH LG   = INDUCED_GRAPH2           (RED EDGES)
+ ** SIXTH LG   = HALF_UNALIGNED_GRAPH2    (RED EDGES)  - sometimes referred to in speech as ORANGE edges)
+ ** SEVENTH LG = FULL_UNALIGNED_GRAPH2    (RED EDGES)  - sometimes referred to in speech as YELLOW edges)
+ **
+ ** PURPLE NODE =  ALIGNED G1-G2 NODE - often referred to as MERGED or COMBINED nodes
+ ** BLUE NODE   =  UNALIGNED G1 NODE  - often referred to as ORPHAN nodes
+ ** RED NODE    =  UNALIGNED G2 NODE
+ **
  */
 
 public class NetworkAlignment {

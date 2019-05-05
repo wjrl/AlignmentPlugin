@@ -25,10 +25,10 @@ package org.systemsbiology.biofabric.plugin.core.align;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.systemsbiology.biofabric.api.io.BuildData;
 import org.systemsbiology.biofabric.api.model.NetLink;
 import org.systemsbiology.biofabric.api.model.NetNode;
@@ -39,26 +39,12 @@ import org.systemsbiology.biofabric.plugin.PluginSupportFactory;
 
 /***************************************************************************
  **
- ** HashMap based Data structure
+ ** HashMap based data structure
  **
+ ** There are 40 DISTINCT Node Groups for aligned and unaligned nodes
+ ** There are 76 DISTINCT Node Groups for aligned and unaligned nodes with Perfect NGs
  **
- ** LG = LINK GROUP
- **
- ** FIRST LG   = PURPLE EDGES           // COVERERED EDGE
- ** SECOND LG  = BLUE EDGES             // INDUCED_GRAPH1
- ** THIRD LG   = CYAN EDGES             // HALF_ORPHAN_GRAPH1       (TECHNICALLY BLUE EDGES)
- ** FOURTH LG  = GREEN EDGES            // FULL_ORPHAN_GRAPH1       (TECHNICALLY BLUE EDGES)
- ** FIFTH LG   = RED EDGES              // INDUCED_GRAPH2
- ** SIXTH LG   = ORANGE EDGES           // HALF_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
- ** SEVENTH LG = YELLOW EDGES           // FULL_UNALIGNED_GRAPH2    (TECHNICALLY RED EDGES)
- **
- ** PURPLE NODE =  ALIGNED NODE
- ** BLUE NODE   =  ORPHAN (UNALIGNED) BLUE NODE
- ** RED NODE    =  UNALIGNED NODE
- **
- **
- ** WE HAVE 40 DISTINCT CLASSES (NODE GROUPS) FOR EACH ALIGNED AND UNALIGNED NODE
- **
+ ** With Perfect NodeGroups activated, the correctness of a node is determined by either NC or JS
  */
 
 public class NodeGroupMap {
@@ -114,7 +100,13 @@ public class NodeGroupMap {
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mergedToCorrectNC,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mode,
              ((NetworkAlignmentBuildData)bd.getPluginBuildData()).jaccSimThreshold,
-         nodeGroupOrder, 
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksSmall,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersSmall,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).linksLarge,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).lonersLarge,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).mapG1toG2,
+             ((NetworkAlignmentBuildData)bd.getPluginBuildData()).perfectG1toG2,
+         nodeGroupOrder,
          colorMap, 
          monitor);
   }
@@ -125,6 +117,9 @@ public class NodeGroupMap {
                         NetworkAlignment.NodeColorMap colorMapPerfect,
                         Map<NetNode, Boolean> mergedToCorrectNC,
                         PerfectNGMode mode, final Double jaccSimThreshold,
+                        ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
+                        ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
+                        Map<NetNode, NetNode> mapG1toG2, Map<NetNode, NetNode> perfectG1toG2,
                         String[] nodeGroupOrder, String[][] colorMap,
                         BTProgressMonitor monitor) throws AsynchExitRequestException {
     
@@ -142,10 +137,12 @@ public class NodeGroupMap {
     if (mode == PerfectNGMode.JACCARD_SIMILARITY) { // create structures for JS involving perfect alignment
       Map<NetNode, Set<NetNode>> nodeToNeighborsPerfect = new HashMap<NetNode, Set<NetNode>>();
       Map<NetNode, Set<NetLink>> nodeToLinksPerfect = new HashMap<NetNode, Set<NetLink>>();
-      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(allLinksPerfect, loneNodeIDsPerfect, nodeToNeighborsPerfect, nodeToLinksPerfect, monitor_);
+      PluginSupportFactory.getBuildExtractor().createNeighborLinkMap(allLinksPerfect, loneNodeIDsPerfect,
+              nodeToNeighborsPerfect, nodeToLinksPerfect, monitor_);
       
       this.funcJS_ = new JaccardSimilarity(allLinksMain, loneNodeIDsMain, colorMapMain, allLinksPerfect, loneNodeIDsPerfect,
-              colorMapPerfect, nodeToNeighbors_, nodeToLinks_, nodeToNeighborsPerfect, nodeToLinksPerfect, jaccSimThreshold, monitor);
+              colorMapPerfect, nodeToNeighbors_, nodeToLinks_, nodeToNeighborsPerfect, nodeToLinksPerfect,
+              linksSmall, lonersSmall, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2, jaccSimThreshold, monitor);
     }
     generateOrderMap(nodeGroupOrder);
     generateColorMap(colorMap);
