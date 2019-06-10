@@ -7,6 +7,9 @@ __VISNAB__ is a BioFabric plugin that allows you to visualize network alignments
 
 ### Preparations
 
+**IMPORTANT NOTE:** BioFabric Version 2.0 Beta Release 2 has just been released (June 10, 2019). The V1 Release of __VISNAB__ is not compatible
+with this new Version 2.0 Beta Release 2; it will be updated very shortly. Builds from the master branch are currently compatible.
+
 __VISNAB__ is written as a BioFabric plugin, and requires that your first install BioFabric Version 2 (Beta), which is currently under development. 
 Note that the current production Version 1.0 of BioFabric is not designed to support plugins; __Version 2 is required__. BioFabric is written in Java, 
 and can be run on your Windows, Mac, or Linux computer. For Windows, you will first need to install the Java Runtime Environment (JRE), which 

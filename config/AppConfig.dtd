@@ -2,12 +2,12 @@
 
 <!ENTITY appName "VISNAB">
 <!ENTITY appVersionMajor "1">
-<!ENTITY appVersionMinor "0">
-<!ENTITY appVersionPatch "0">
-<!ENTITY appVersionBuild "1">
+<!ENTITY appVersionMinor "1">
+<!ENTITY appVersionPatch "r">
+<!ENTITY appVersionBuild "a">
 <!ENTITY appVersion "&appVersionMajor;.&appVersionMinor;.&appVersionPatch;.&appVersionBuild;">
 <!ENTITY appNDVersion "&appVersionMajor;&appVersionMinor;&appVersionPatch;&appVersionBuild;">
-<!ENTITY appDate "Tue Sep 4 00:35:15 PDT 2018">
+<!ENTITY appDate "Mon Apr 29 21:52:58 PDT 2019">
 <!ENTITY appDatedVersion "&appVersion; &appDate;">
-<!ENTITY appYear "2018">
+<!ENTITY appYear "2019">
 
