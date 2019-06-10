@@ -1,7 +1,7 @@
 /*
 **    Copyright (C) 2018 Rishi Desai
 **
-**    Copyright (C) 2003-2018 Institute for Systems Biology
+**    Copyright (C) 2003-2019 Institute for Systems Biology
 **                            Seattle, Washington, USA.
 **
 **    This library is free software; you can redistribute it and/or
@@ -84,7 +84,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
   
   public NetworkAlignmentDialog(JFrame parent, NetworkAlignmentBuildData.ViewType analysisType, 
   		                          String pluginClassName, FileLoadFlows flf, PluginResourceManager rMan) {
-    super(parent, rMan.getPluginString("networkAlignment.title"), new Dimension(700, 450), 3);
+    super(parent, rMan.getPluginString("networkAlignment.title"), new Dimension(700, 500), 3);
         
     this.parent_ = parent;
     this.analysisType_ = analysisType;
@@ -140,10 +140,10 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     JPanel panGraphInfoTwo = null;
     switch (analysisType_) {
       case ORPHAN:
-        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageNonGroup")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.message")));
         break;
       case CYCLE:
-        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageNonGroup")));
+        panGraphInfo.add(new JLabel(rMan_.getPluginString("networkAlignment.message")));
         panGraphInfoTwo = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panGraphInfoTwo.add(new JLabel(rMan_.getPluginString("networkAlignment.messageCycleTwo")));
         break;
@@ -163,6 +163,7 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
     }
     addWidgetFullRow(panGraphConfirm, true);
     addLabeledFileBrowse(graph1FileMatch, graph1Field_, graph1Browse);
+    addWidgetFullRow(new JLabel(rMan_.getPluginString("networkAlignment.hasBeen"), SwingConstants.CENTER), true);
     addLabeledFileBrowse(graph2FileMatch, graph2Field_, graph2Browse);
     addLabeledFileBrowse(alignFileMatch, alignField_, alignmentBrowse);
   
@@ -592,17 +593,20 @@ public class NetworkAlignmentDialog extends BTStashResultsDialog {
   
   public static class NetworkAlignmentDialogInfo {
     
-    public final File graphA, graphB, align, perfect; // graph1 and graph2 can be out of order (size), hence graphA and graphB
+    public final File graph1, graph2, align, perfect; // graphs must be entered in correct order (G1 aligned to G2)
 
     public final NetworkAlignmentBuildData.ViewType analysisType;
     public final NodeGroupMap.PerfectNGMode mode;
     public final Double jaccSimThreshold;
+    // Extra settings used for AlignCycleLayout:
+    public boolean turnOnShadows;
+    public boolean useNodeGroups;    
     
     public NetworkAlignmentDialogInfo(File graph1, File graph2, File align, File perfect,
                                       NetworkAlignmentBuildData.ViewType analysisType, NodeGroupMap.PerfectNGMode mode,
                                       Double jaccSimThreshold) {
-      this.graphA = graph1;
-      this.graphB = graph2;
+      this.graph1 = graph1;
+      this.graph2 = graph2;
       this.align = align;
       this.perfect = perfect;
       this.analysisType = analysisType;

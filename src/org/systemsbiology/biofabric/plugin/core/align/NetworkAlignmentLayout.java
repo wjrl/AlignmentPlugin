@@ -169,9 +169,9 @@ public class NetworkAlignmentLayout extends NodeLayout {
     
     if (nabd.mode == NodeGroupMap.PerfectNGMode.NODE_CORRECTNESS ||
             nabd.mode == NodeGroupMap.PerfectNGMode.JACCARD_SIMILARITY) {
-      grouper = new NodeGroupMap(bd, defaultNGOrderWithCorrect, ngAnnotcolorsWithCorrect, monitor);
+      grouper = new NodeGroupMap(bd, NodeGroupMap.nodeGroupOrderPerfectNG, NodeGroupMap.nodeGroupAnnotsPerfectNG, monitor);
     } else {
-      grouper = new NodeGroupMap(bd, defaultNGOrderWithoutCorrect, ngAnnotColorsWithoutCorrect, monitor);
+      grouper = new NodeGroupMap(bd, NodeGroupMap.nodeGroupOrder, NodeGroupMap.nodeGroupAnnots, monitor);
     }
     
     // master list of nodes in each group
@@ -369,142 +369,5 @@ public class NetworkAlignmentLayout extends NodeLayout {
     bd.setNodeAnnotations(layerZeroAnnots);
     return;
   }
-  
-  ////////////////////////////////////////////////////////////////////////////
-  //
-  // PUBLIC CONSTANTS
-  //
-  ////////////////////////////////////////////////////////////////////////////
-  
-  public static final String[] defaultNGOrderWithoutCorrect = {
-          "(P:0)",
-          "(P:P)",
-          "(P:pBp)",
-          "(P:pBb)",
-          "(P:pBp/pBb)",
-          "(P:pRp)",
-          "(P:P/pBp)",
-          "(P:P/pBb)",
-          "(P:P/pBp/pBb)",
-          "(P:P/pRp)",
-          "(P:pBp/pRp)",
-          "(P:pBb/pRp)",
-          "(P:pBp/pBb/pRp)",
-          "(P:P/pBp/pRp)",
-          "(P:P/pBb/pRp)",
-          "(P:P/pBp/pBb/pRp)",
-          "(P:pRr)",
-          "(P:P/pRr)",
-          "(P:pBp/pRr)",
-          "(P:pBb/pRr)",
-          "(P:pBp/pBb/pRr)",
-          "(P:pRp/pRr)",
-          "(P:P/pBp/pRr)",
-          "(P:P/pBb/pRr)",
-          "(P:P/pBp/pBb/pRr)",
-          "(P:P/pRp/pRr)",
-          "(P:pBp/pRp/pRr)",
-          "(P:pBb/pRp/pRr)",
-          "(P:pBp/pBb/pRp/pRr)",
-          "(P:P/pBp/pRp/pRr)",
-          "(P:P/pBb/pRp/pRr)",
-          "(P:P/pBp/pBb/pRp/pRr)",
-          "(B:pBb)",
-          "(B:bBb)",
-          "(B:pBb/bBb)",
-          "(B:0)",
-          "(R:pRr)",
-          "(R:rRr)",
-          "(R:pRr/rRr)",
-          "(R:0)"
-  };
-  
-  // Dark colors used for Purple nodes with any blue neighbors
-  // Normal colors used for original purple and red nodes (no blue nodes)
-  public static final String[][] ngAnnotColorsWithoutCorrect = {
-          {"(P:0)",         "GrayBlue"},
-          {"(P:P)",         "Orange"},
-          {"(P:pBp)",       "Yellow"},
-          {"(P:pBb)",       "DarkPeach"},
-          {"(P:pBp/pBb)",   "DarkPowderBlue"},
-          {"(P:pRp)",           "Green"},
-          {"(P:P/pBp)",         "Purple"},
-          {"(P:P/pBb)",         "DarkOrange"},
-          {"(P:P/pBp/pBb)",     "DarkYellow"},
-          {"(P:P/pRp)",         "Pink"},
-          {"(P:pBp/pRp)",       "PowderBlue"},
-          {"(P:pBb/pRp)",       "DarkGreen"},
-          {"(P:pBp/pBb/pRp)",   "DarkPurple"},
-          {"(P:P/pBp/pRp)",     "Peach"},
-          {"(P:P/pBb/pRp)",     "DarkGrayBlue"},
-          {"(P:P/pBp/pBb/pRp)", "DarkPink"},
-          {"(P:pRr)",           "GrayBlue"},
-          {"(P:P/pRr)",         "Orange"},
-          {"(P:pBp/pRr)",       "Yellow"},
-          {"(P:pBb/pRr)",       "DarkPowderBlue"},
-          {"(P:pBp/pBb/pRr)",   "DarkPeach"},
-          {"(P:pRp/pRr)",           "Green"},
-          {"(P:P/pBp/pRr)",         "Purple"},
-          {"(P:P/pBb/pRr)",         "DarkGrayBlue"},
-          {"(P:P/pBp/pBb/pRr)",     "DarkOrange"},
-          {"(P:P/pRp/pRr)",         "Pink"},
-          {"(P:pBp/pRp/pRr)",       "PowderBlue"},
-          {"(P:pBb/pRp/pRr)",       "DarkYellow"},
-          {"(P:pBp/pBb/pRp/pRr)",   "DarkPurple"},
-          {"(P:P/pBp/pRp/pRr)",     "Peach"},
-          {"(P:P/pBb/pRp/pRr)",     "DarkPink"},
-          {"(P:P/pBp/pBb/pRp/pRr)", "DarkGreen"},
-          {"(B:pBb)",               "PowderBlue"},
-          {"(B:bBb)",               "Purple"},
-          {"(B:pBb/bBb)",           "Pink"},
-          {"(B:0)",                 "Peach"},
-          {"(R:pRr)",           "GrayBlue"},
-          {"(R:rRr)",           "Orange"},
-          {"(R:pRr/rRr)",       "Yellow"},
-          {"(R:0)",             "Green"}
-  };
-  
-  // empty for now
-  public static final String[] defaultNGOrderWithCorrect = {};
-
-  // this is broken for blue node groups
-  public static final String[][] ngAnnotcolorsWithCorrect = {
-          {"(P:0/1)",          "GrayBlue"},
-          {"(P:0/0)",          "DarkGrayBlue"},
-          {"(P:P/1)",          "Orange"},
-          {"(P:P/0)",          "DarkOrange"},
-          {"(P:B/1)",          "Yellow"},
-          {"(P:B/0)",          "DarkYellow"},
-          {"(P:pRp/1)",        "Green"},
-          {"(P:pRp/0)",        "DarkGreen"},
-          {"(P:P/B/1)",        "Purple"},
-          {"(P:P/B/0)",        "DarkPurple"},
-          {"(P:P/pRp/1)",      "Pink"},
-          {"(P:P/pRp/0)",      "DarkPink"},
-          {"(P:B/pRp/1)",      "PowderBlue"},
-          {"(P:B/pRp/0)",      "DarkPowderBlue"},
-          {"(P:P/B/pRp/1)",    "Peach"},
-          {"(P:P/B/pRp/0)",    "DarkPeach"},
-          {"(P:pRr/1)",        "GrayBlue"},
-          {"(P:pRr/0)",        "DarkGrayBlue"},
-          {"(P:P/pRr/1)",      "Orange"},
-          {"(P:P/pRr/0)",      "DarkOrange"},
-          {"(P:B/pRr/1)",      "Yellow"},
-          {"(P:B/pRr/0)",      "DarkYellow"},
-          {"(P:pRp/pRr/1)",    "Green"},
-          {"(P:pRp/pRr/0)",    "DarkGreen"},
-          {"(P:P/B/pRr/1)",    "Purple"},
-          {"(P:P/B/pRr/0)",    "DarkPurple"},
-          {"(P:P/pRp/pRr/1)",  "Pink"},
-          {"(P:P/pRp/pRr/0)",  "DarkPink"},
-          {"(P:B/pRp/pRr/1)",  "PowderBlue"},
-          {"(P:B/pRp/pRr/0)",  "DarkPowderBlue"},
-          {"(P:P/B/pRp/pRr/1)","Peach"},
-          {"(P:P/B/pRp/pRr/0)","DarkPeach"},
-          {"(R:pRr/0)",        "DarkGrayBlue"},
-          {"(R:rRr/0)",        "DarkOrange"},
-          {"(R:pRr/rRr/0)",    "DarkYellow"},
-          {"(R:0/0)",          "DarkGreen"}
-  };
   
 }

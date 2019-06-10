@@ -49,7 +49,6 @@ import org.systemsbiology.biofabric.api.model.Network;
 import org.systemsbiology.biofabric.api.parser.AbstractFactoryClient;
 import org.systemsbiology.biofabric.api.parser.GlueStick;
 import org.systemsbiology.biofabric.api.util.ExceptionHandler;
-import org.systemsbiology.biofabric.api.util.NID;
 import org.systemsbiology.biofabric.api.util.PluginResourceManager;
 import org.systemsbiology.biofabric.api.util.UniqueLabeller;
 import org.systemsbiology.biofabric.api.worker.AsynchExitRequestException;
@@ -84,6 +83,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
   private BackgroundWorkerControlManager bwcm_;
   private String className_;
   private PluginResourceManager rMan_;
+  private PlugInNetworkModelAPI api_;
   
   
   ////////////////////////////////////////////////////////////////////////////
@@ -173,6 +173,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     flf_ = api.getFileUtilities();
     topWindow_ = api.getTopWindow();
     bwcm_ = api.getBWCtrlMgr();
+    api_ = api;
 
     for (BioFabricToolPlugInCmd cmd : myCmds_) {
       ((Enabler)cmd).setEnabled(true);
@@ -268,22 +269,21 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     // create the individual networks (links + lone nodes)
     //
   
-    ArrayList<NetLink> linksGraphA = new ArrayList<NetLink>();
-    HashSet<NetNode> lonersGraphA = new HashSet<NetNode>();
+    ArrayList<NetLink> linksSmall = new ArrayList<NetLink>();
+    HashSet<NetNode> lonersSmall = new HashSet<NetNode>();
     
-    FileLoadFlows.FileLoadType typeA = flf_.getFileLoadType(nadi.graphA);
-    FileLoadFlows.FileLoadResult flr = flf_.loadFromASource(nadi.graphA, linksGraphA, lonersGraphA, null, idGen, true, typeA, false);
+    FileLoadFlows.FileLoadType type1 = flf_.getFileLoadType(nadi.graph1);
+    FileLoadFlows.FileLoadResult flr = flf_.loadFromASource(nadi.graph1, linksSmall, lonersSmall, null, idGen, true, type1, false);
     File cacheFile = flr.getCacheFile();
     
     
+    ArrayList<NetLink> linksLarge = new ArrayList<NetLink>();
+    HashSet<NetNode> lonersLarge = new HashSet<NetNode>();
     
-    ArrayList<NetLink> linksGraphB = new ArrayList<NetLink>();
-    HashSet<NetNode> lonersGraphB = new HashSet<NetNode>();
-    
-    FileLoadFlows.FileLoadType typeB = flf_.getFileLoadType(nadi.graphB);
-    flf_.loadFromASource(nadi.graphB, linksGraphB, lonersGraphB, null, idGen, true, typeB, false);
+    FileLoadFlows.FileLoadType type2 = flf_.getFileLoadType(nadi.graph2);
+    flf_.loadFromASource(nadi.graph2, linksLarge, lonersLarge, null, idGen, true, type2, false);
   
-    return (networkAlignmentStepTwo(nadi, linksGraphA, lonersGraphA, linksGraphB, lonersGraphB, 
+    return (networkAlignmentStepTwo(nadi, linksSmall, lonersSmall, linksLarge, lonersLarge,
     		                            nadi.jaccSimThreshold, idGen, outType, cacheFile));
   }
   
@@ -332,28 +332,10 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
    */
   
   private boolean networkAlignmentStepTwo(NetworkAlignmentDialog.NetworkAlignmentDialogInfo nadi,
-                                          ArrayList<NetLink> linksGraphA, HashSet<NetNode> loneNodeIDsGraphA,
-                                          ArrayList<NetLink> linksGraphB, HashSet<NetNode> loneNodeIDsGraphB,
+                                          ArrayList<NetLink> linksSmall, HashSet<NetNode> lonersSmall,
+                                          ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
                                           Double jaccSimThreshold, UniqueLabeller idGen,
                                           NetworkAlignmentBuildData.ViewType outType, File cacheFile) {
-    //
-    // Assign GraphA and GraphB to Graph1 and Graph2
-    //
-    
-    NetAlignGraphStructure struct = new NetAlignGraphStructure();
-    boolean worked = assignGraphs(linksGraphA, loneNodeIDsGraphA, linksGraphB, loneNodeIDsGraphB, nadi.align, struct);
-    if (! worked) {
-      return (true);
-    }
-  
-    // small graph G1
-    ArrayList<NetLink> linksSmall = struct.linksSmall;
-    HashSet<NetNode> lonersSmall = struct.lonersSmall;
-  
-    // large graph G2
-    ArrayList<NetLink> linksLarge = struct.linksLarge;
-    HashSet<NetNode> lonersLarge = struct.lonersLarge;
-
     // Alignment processing
     Map<NetNode, NetNode> mapG1toG2 =
             loadTheAlignmentFile(nadi.align, linksSmall, lonersSmall, linksLarge, lonersLarge);
@@ -442,20 +424,22 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
               NetworkAlignmentBuildData.ViewType.GROUP, idGen, cacheFile);
     }
   
-    // i.e. same 2 graphs and perfect alignment yield an empty network
-    
+    // Warn user of alignment with only singletons
     if (finished && mergedLinks.isEmpty()) {
       JOptionPane.showMessageDialog(topWindow_, rMan_.getPluginString("networkAlignment.emptyNetwork"),
               rMan_.getPluginString("networkAlignment.emptyNetworkTitle"),
               JOptionPane.WARNING_MESSAGE);
-      return (false);
     }
-  
-    if (finished) { // for main alignment      
-      finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, false);
+    
+    if (finished) { // for main alignment
+    	// If we have just singletons, we can skip the shadow question (though with no links it will not
+    	// be asked anyway. More importantly, if user forced it on previously, don't ask again.
+    	boolean skip_shadows = (mergedLinks.isEmpty() || nadi.turnOnShadows);
+      finished = flf_.handleDirectionsDupsAndShadows(mergedLinks, mergedLoneNodeIDs, false, relMap, reducedLinks, cacheFile, true, skip_shadows);
     }
     
     if (finished && doingPerfectGroup) { // for perfect alignment
+    	// Doing this a second time, we want to shut up the question about turning on shadow links (just got asked)
       finished = flf_.handleDirectionsDupsAndShadows(mergedLinksPerfect, mergedLoneNodeIDsPerfect, false, relMapPerfect, 
       																							 reducedLinksPerfect, cacheFile, true, true);
     }
@@ -472,23 +456,21 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       // If we are doing a CaseII Cycle layout, we want to have a full list of the nodes in both
       // networks:
       //
-      
-      Set<NetNode> allLargerNodes = new HashSet<NetNode>(lonersLarge);
-      for (NetLink ll: linksLarge) {
-        allLargerNodes.add(ll.getSrcNode());
-        allLargerNodes.add(ll.getTrgNode());
-      }
-      
-      Set<NetNode> allSmallerNodes = new HashSet<NetNode>(lonersSmall);
-      for (NetLink ll: linksSmall) {
-        allSmallerNodes.add(ll.getSrcNode());
-        allSmallerNodes.add(ll.getTrgNode());
-      }
   
-      networkAlignmentStepFive(allLargerNodes, allSmallerNodes, reducedLinks, mergedLoneNodeIDs,
-                               mergedToCorrectNC, nodeColorMap, mapG1toG2, perfectG1toG2,
-                               linksLarge, lonersLarge, pendingNetAlignStats_, outType,
-                               nadi.mode, jaccSimThreshold, idGen, nadi.align, cacheFile);
+      BuildExtractor bex = PluginSupportFactory.getBuildExtractor();
+      Set<NetNode> allLargerNodes, allSmallerNodes;
+      try {
+        allLargerNodes = bex.extractNodes(linksLarge, lonersLarge,null);
+        allSmallerNodes = bex.extractNodes(linksSmall,lonersSmall, null);
+      } catch (AsynchExitRequestException aere) {
+        throw (new IllegalStateException("Error met while extracting nodes"));
+        // shouldn't happen
+      }
+      NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(nodeColorMap, reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect,
+              mergedToCorrectNC, allSmallerNodes, linksSmall, lonersSmall, allLargerNodes, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2,
+              pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold, nadi.useNodeGroups, nadi.turnOnShadows);
+  
+      networkAlignmentStepFive(reducedLinks, mergedLoneNodeIDs, nabd, idGen, nadi.align, cacheFile);
     }
     pendingNetAlignStats_ = new NetAlignStats();
     return (true);
@@ -529,25 +511,13 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
    ** Build the network alignment
    */
   
-  private boolean networkAlignmentStepFive(Set<NetNode> allLargerNodes,
-                                           Set<NetNode> allSmallerNodes,
-                                           Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
-                                           Map<NetNode, Boolean> mergedToCorrect, 
-                                           NetworkAlignment.NodeColorMap nodeColorMap,
-                                           Map<NetNode, NetNode> mapG1toG2,
-                                           Map<NetNode, NetNode> perfectMap,
-                                           ArrayList<NetLink> linksLarge, HashSet<NetNode> lonersLarge,
-                                           NetAlignStats report, 
-                                           NetworkAlignmentBuildData.ViewType viewType, 
-                                           NodeGroupMap.PerfectNGMode mode, Double jaccSimThreshold,
-                                           UniqueLabeller idGen, File align, File holdIt) {
+    private boolean networkAlignmentStepFive(Set<NetLink> reducedLinks, Set<NetNode> loneNodeIDs,
+            NetworkAlignmentBuildData nabd, UniqueLabeller idGen, File align, File holdIt) {
 
     HashMap<NetNode, String> emptyClustMap = new HashMap<NetNode, String>();
 
     BuildData bd = PluginSupportFactory.getBuildDataForPlugin(idGen, reducedLinks, loneNodeIDs, emptyClustMap, null);
     bd.setLayoutMode(Network.LayoutMode.PER_NETWORK_MODE);
-    NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(allLargerNodes, allSmallerNodes, mergedToCorrect, nodeColorMap, report,
-                                                                   viewType, mapG1toG2, perfectMap, linksLarge, lonersLarge, mode, jaccSimThreshold);
     bd.setPluginBuildData(nabd);
   
     try {
@@ -561,118 +531,6 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
     FabricCommands.setPreference("LoadDirectory", align.getAbsoluteFile().getParent());
     flf_.manageWindowTitle(align.getName());
     return true;
-  }
-  
-  /***************************************************************************
-   **
-   ** Assign GraphA and GraphB to Graph1 and Graph2 using comparisons
-   */
-  
-  private boolean assignGraphs(ArrayList<NetLink> linksGraphA, HashSet<NetNode> loneNodeIDsGraphA,
-                               ArrayList<NetLink> linksGraphB, HashSet<NetNode> loneNodeIDsGraphB,
-                               File align, NetAlignGraphStructure struct) {
-  
-    Set<NetNode> nodesA = null, nodesB = null;
-    try {
-    	BuildExtractor bex = PluginSupportFactory.getBuildExtractor();
-      nodesA = bex.extractNodes(linksGraphA, loneNodeIDsGraphA, null);
-      nodesB = bex.extractNodes(linksGraphB, loneNodeIDsGraphB, null);
-    } catch (AsynchExitRequestException aere) {
-      // should never happen
-    }
-    int numNodesA = nodesA.size();
-    int numNodesB = nodesB.size();
-    // First compare node number
-    if (numNodesA > numNodesB) {
-      // G1 = B, G2 = A
-      struct.linksLarge = linksGraphA;
-      struct.lonersLarge = loneNodeIDsGraphA;
-      struct.linksSmall = linksGraphB;
-      struct.lonersSmall = loneNodeIDsGraphB;
-      return (true);
-    } else if (numNodesA <= numNodesB) { // (case always true) will change later to correct - Rishi Desai 11/21/2018
-      // G1 = A, G2 = B
-      struct.linksLarge = linksGraphB;
-      struct.lonersLarge = loneNodeIDsGraphB;
-      struct.linksSmall = linksGraphA;
-      struct.lonersSmall = loneNodeIDsGraphA;
-      return (true);
-    }
-    
-    //
-    // Now use the columns from the alignment file for insight
-    //
-    // Generate necessary structures for comparison
-    //
-    
-    AlignmentLoader alod = new AlignmentLoader(className_, rMan_);
-    Map<String, String> mapG1ToG2Str;
-    try {
-      mapG1ToG2Str = alod.readAlignment(align, new AlignmentLoader.NetAlignFileStats());
-    } catch (IOException ioe) {
-      flf_.displayFileInputError(ioe);
-      return (false);
-    }
-  
-    Set<String> namesG1 = new HashSet<String>(), namesG2 = new HashSet<String>();
-    for (Map.Entry<String, String> match : mapG1ToG2Str.entrySet()) {
-      namesG1.add(match.getKey());
-      namesG2.add(match.getValue());
-    }
-  
-    Set<String> namesA = new HashSet<String>(), namesB = new HashSet<String>();
-    for (NetNode node : nodesA) {
-      namesA.add(node.getName());
-    }
-    for (NetNode node : nodesB) {
-      namesB.add(node.getName());
-    }
-    
-    //
-    // Can only test cases of equality here because nearly all error checking
-    // is done in the main read.
-    //
-  
-    if (! namesA.equals(namesB)) { // if node sets are equal, cannot distinguish without link # comparison
-      if (namesG1.equals(namesA) && namesG2.equals(namesB)) {
-        // G1 = A, G2 = B
-        struct.linksLarge = linksGraphB;
-        struct.lonersLarge = loneNodeIDsGraphB;
-        struct.linksSmall = linksGraphA;
-        struct.lonersSmall = loneNodeIDsGraphA;
-        return (true);
-      } else if (namesG1.equals(namesB) && namesG2.equals(namesA)) {
-        // G1 = B, G2 = A
-        struct.linksLarge = linksGraphA;
-        struct.lonersLarge = loneNodeIDsGraphA;
-        struct.linksSmall = linksGraphB;
-        struct.lonersSmall = loneNodeIDsGraphB;
-        return (true);
-      }
-    }
-    
-    //
-    // If both graphs still have same node sets, link size is the only option
-    //
-  
-    int numLinksA = linksGraphA.size();
-    int numLinksB = linksGraphB.size();
-    // if #links are still equal, we choose graphA as smaller (G1) and graphB as larger (G2)
-    if (numLinksA > numLinksB) {
-      // G1 = B, G2 = A
-      struct.linksLarge = linksGraphA;
-      struct.lonersLarge = loneNodeIDsGraphA;
-      struct.linksSmall = linksGraphB;
-      struct.lonersSmall = loneNodeIDsGraphB;
-      return (true);
-    } else {
-      // G1 = A, G2 = B
-      struct.linksLarge = linksGraphB;
-      struct.lonersLarge = loneNodeIDsGraphB;
-      struct.linksSmall = linksGraphA;
-      struct.lonersSmall = loneNodeIDsGraphA;
-      return (true);
-    }
   }
   
   /***************************************************************************
@@ -780,10 +638,10 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       NetworkAlignmentDialog.NetworkAlignmentDialogInfo nai = nad.getNAInfo();
       
       boolean filesNotOkay =
-              !flf_.standardFileChecks(nai.graphA, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
+              !flf_.standardFileChecks(nai.graph1, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
                                        FileLoadFlows.FILE_DONT_CHECK_OVERWRITE, FileLoadFlows.FILE_MUST_BE_FILE,
                                        FileLoadFlows.FILE_CAN_WRITE_DONT_CARE, FileLoadFlows.FILE_CAN_READ) ||
-              !flf_.standardFileChecks(nai.graphB, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
+              !flf_.standardFileChecks(nai.graph2, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
                                        FileLoadFlows.FILE_DONT_CHECK_OVERWRITE, FileLoadFlows.FILE_MUST_BE_FILE,
                                        FileLoadFlows.FILE_CAN_WRITE_DONT_CARE, FileLoadFlows.FILE_CAN_READ) ||
               !flf_.standardFileChecks(nai.align, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
@@ -836,10 +694,10 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       NetworkAlignmentDialog.NetworkAlignmentDialogInfo nai = nad.getNAInfo();
       
       boolean filesNotOkay =
-              !flf_.standardFileChecks(nai.graphA, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
+              !flf_.standardFileChecks(nai.graph1, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
                                        FileLoadFlows.FILE_DONT_CHECK_OVERWRITE, FileLoadFlows.FILE_MUST_BE_FILE,
                                        FileLoadFlows.FILE_CAN_WRITE_DONT_CARE, FileLoadFlows.FILE_CAN_READ) ||
-              !flf_.standardFileChecks(nai.graphB, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
+              !flf_.standardFileChecks(nai.graph2, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
                                        FileLoadFlows.FILE_DONT_CHECK_OVERWRITE, FileLoadFlows.FILE_MUST_BE_FILE,
                                        FileLoadFlows.FILE_CAN_WRITE_DONT_CARE, FileLoadFlows.FILE_CAN_READ) ||
               !flf_.standardFileChecks(nai.align, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
@@ -849,6 +707,25 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       if (filesNotOkay) {
         return (false);
       }
+      
+      //
+      // With this layout, shadow links can really help, since we do not draw link group annotations if shadows
+      // are not present. So provide the user with the opportunity to force shadow links to be on.
+      //
+      
+      if (!api_.getDisplayShadows()) {
+        ShadowsAndGroupsDialog sagd = new ShadowsAndGroupsDialog(topWindow_, rMan_);
+        sagd.setVisible(true);
+      
+        if (!sagd.haveResult()) {
+          return (false);
+        }
+        nai.turnOnShadows = sagd.turnShadowsOn();
+        nai.useNodeGroups = !nai.turnOnShadows;
+      } else {
+      	nai.useNodeGroups = false;
+      }
+
       return (networkAlignmentFromSources(nai, NetworkAlignmentBuildData.ViewType.CYCLE));
     }
     
@@ -887,10 +764,10 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       NetworkAlignmentDialog.NetworkAlignmentDialogInfo nai = nad.getNAInfo();
       
       boolean filesNotOkay =
-              !flf_.standardFileChecks(nai.graphA, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
+              !flf_.standardFileChecks(nai.graph1, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
                                        FileLoadFlows.FILE_DONT_CHECK_OVERWRITE, FileLoadFlows.FILE_MUST_BE_FILE,
                                        FileLoadFlows.FILE_CAN_WRITE_DONT_CARE, FileLoadFlows.FILE_CAN_READ) ||
-              !flf_.standardFileChecks(nai.graphB, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
+              !flf_.standardFileChecks(nai.graph2, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
                                        FileLoadFlows.FILE_DONT_CHECK_OVERWRITE, FileLoadFlows.FILE_MUST_BE_FILE,
                                        FileLoadFlows.FILE_CAN_WRITE_DONT_CARE, FileLoadFlows.FILE_CAN_READ) ||
               !flf_.standardFileChecks(nai.align, FileLoadFlows.FILE_MUST_EXIST, FileLoadFlows.FILE_CAN_CREATE_DONT_CARE,
@@ -1326,18 +1203,6 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
       }
       return (retval);
     }  
-  }
-  
-  /***************************************************************************
-   **
-   ** For transferring objects when assigning Graph1 and Graph2 ONLY
-   */
-  
-  private static final class NetAlignGraphStructure {
-    ArrayList<NetLink> linksSmall;   // G1
-    HashSet<NetNode> lonersSmall;
-    ArrayList<NetLink> linksLarge;   // G2
-    HashSet<NetNode> lonersLarge;
   }
   
 }
