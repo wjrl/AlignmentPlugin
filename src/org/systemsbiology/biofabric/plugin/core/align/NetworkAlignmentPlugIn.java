@@ -467,7 +467,7 @@ public class NetworkAlignmentPlugIn implements BioFabricToolPlugIn {
         // shouldn't happen
       }
       NetworkAlignmentBuildData nabd = new NetworkAlignmentBuildData(nodeColorMap, reducedLinksPerfect, mergedLoneNodeIDsPerfect, nodeColorMapPerfect,
-              mergedToCorrectNC, allLargerNodes, linksLarge, lonersLarge,  allSmallerNodes, mapG1toG2, perfectG1toG2,
+              mergedToCorrectNC, allSmallerNodes, linksSmall, lonersSmall, allLargerNodes, linksLarge, lonersLarge, mapG1toG2, perfectG1toG2,
               pendingNetAlignStats_, outType, nadi.mode, jaccSimThreshold, nadi.useNodeGroups, nadi.turnOnShadows);
   
       networkAlignmentStepFive(reducedLinks, mergedLoneNodeIDs, nabd, idGen, nadi.align, cacheFile);

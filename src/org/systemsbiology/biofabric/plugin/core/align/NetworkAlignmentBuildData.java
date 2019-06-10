@@ -60,12 +60,10 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
   public NodeGroupMap.PerfectNGMode mode;
   public final Double jaccSimThreshold;
   
-  public ArrayList<NetLink> linksLarge;
-  public HashSet<NetNode> lonersLarge;
-  public Set<NetNode> allLargerNodes;
-  public Set<NetNode> allSmallerNodes;
-  public Map<NetNode, NetNode> mapG1toG2;
-  public Map<NetNode, NetNode> perfectG1toG2;
+  public ArrayList<NetLink> linksSmall, linksLarge;
+  public HashSet<NetNode> lonersSmall, lonersLarge;
+  public Set<NetNode> allLargerNodes, allSmallerNodes;
+  public Map<NetNode, NetNode> mapG1toG2, perfectG1toG2;
   
   public ViewType view;
   public NetworkAlignmentPlugIn.NetAlignStats netAlignStats;
@@ -77,9 +75,8 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
                                    Set<NetLink> allLinksPerfect, Set<NetNode> loneNodeIDsPerfect,
                                    NetworkAlignment.NodeColorMap colorMapPerfect,
                                    Map<NetNode, Boolean> mergedToCorrectNC,
-                                   Set<NetNode> allLargerNodes,
-                                   ArrayList<NetLink> linksLarge, HashSet<NetNode> loneNodeIDsLarge,
-                                   Set<NetNode> allSmallerNodes,
+                                   Set<NetNode> allSmallerNodes, ArrayList<NetLink> linksSmall, HashSet<NetNode> loneNodeIDsSmall,
+                                   Set<NetNode> allLargerNodes, ArrayList<NetLink> linksLarge, HashSet<NetNode> loneNodeIDsLarge,
                                    Map<NetNode, NetNode> mapG1toG2,
                                    Map<NetNode, NetNode> perfectG1toG2,
                                    NetworkAlignmentPlugIn.NetAlignStats netAlignStats, ViewType view,
@@ -94,6 +91,8 @@ public class NetworkAlignmentBuildData implements PluginBuildData {
     this.linksLarge = linksLarge;
     this.lonersLarge = loneNodeIDsLarge;
     this.allSmallerNodes = allSmallerNodes;
+    this.linksSmall = linksSmall;
+    this.lonersSmall = loneNodeIDsSmall;
     this.mapG1toG2 = mapG1toG2;
     this.perfectG1toG2 = perfectG1toG2;
     
