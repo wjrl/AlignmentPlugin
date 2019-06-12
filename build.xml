@@ -10,11 +10,27 @@
  -->
 
 <!--
+PREREQUISITES:
+
+To sign the jar file, you need to have a signing cert from e.g. GoDaddy.
+
+Layout of build directory:
+BioFabRelease
+ |- KeyFiles
+ |   |- ISBSignCert.jks (after buildKeyStore target has run using BioFabric build.xml)
+ |   |- 
+ |- extlib (holds BioFabric jar needed for compilation)
+ |   |- bioFabric-VW.X.Y.Z.jar
+ -->
+
+<!--
 build.xml
 
 Here are the targets that count:
+ clean
  buildPluginJar
  signJar
+ release
 -->
 
 <!DOCTYPE BuildFile [
@@ -35,6 +51,8 @@ Here are the targets that count:
   <property name="app.datedVersion"             value="&appDatedVersion;" />
   <property name="app.date"                     value="&appDate;" />
   <property name="app.year"                     value="&appYear;" />
+  <property name="app.bioFabBuildVer"           value="&bioFabBuildVer;" />
+	
   <property name="app.rootPackage"              value="org" />
   <property name="app.classesDir"               location="${app.releaseDir}/classes" />
   <property name="app.srcDir"                   location="src" />
@@ -46,13 +64,14 @@ Here are the targets that count:
   <property name="app.signJarFile"              value="${app.signDir}/sVISNAB-V${app.version}.jar" />
   <property name="app.signedJarDir"             location="CodeSigning" />
   <property name="app.signJar"                  value="${basedir}/releaseTools/signIt.sh" />
+  <property name="app.releaseDists"             location="releaseDistArchive" />
 
 <!-- Get the classpath to include external libraries -->
 
   <path id="app.classpath">
     <pathelement location="${app.classesDir}" />
     <fileset dir="${app.extLibDir}"> 
-      <include name="bioFabric-V2.0.B.2.jar" />
+      <include name="bioFabric-V${app.bioFabBuildVer}.jar" />
     </fileset>
   </path>
 
@@ -90,14 +109,35 @@ Here are the targets that count:
     </copy>
   </target>
 
+	<!-- Password util. Can be run as a separate target as a dependency -->	
+	
+	<target name="getPassword">
+		<input message="Password:" addproperty="password">
+			<handler classname="org.apache.tools.ant.input.SecureInputHandler" />
+		</input>
+	</target>		
+	
 <!-- Executables -->
 		
-  <target name="signJar" depends="buildPluginJar">
+  <target name="signJar" depends="buildPluginJar, getPassword">
      <delete dir="${app.signDir}" quiet="true" />
      <mkdir dir="${app.signDir}" />
   	 <copy file="${app.jarFile}" todir="${app.signDir}" />
-  	 <echo message="Need password! Execute: ${app.signJar} ${app.keyStoreDir} ${app.signDir} ${app.version}"/>
+ 	 <exec executable="${app.signJar}" inputstring="${password}" failonerror="true">
+		<arg line="${app.keyStoreDir} ${app.signDir} ${app.version}" />
+	 </exec>
   </target>
+	
+	<!-- Release -->
+			
+	<target name="release" depends="signJar">
+		<exec executable="/sbin/md5" failonerror="true" output="${app.signJarFile}-MD5.txt">
+			<arg line="${app.signJarFile}"/>
+		</exec>
+		<replace file="${app.signJarFile}-MD5.txt" token="${app.signDir}/" value=""/>
+ 		<copy file="${app.signJarFile}" todir="${app.releaseDists}" />
+ 		<copy file="${app.signJarFile}-MD5.txt" todir="${app.releaseDists}" />
+	</target>	
 
 <!-- Build the JAR file: -->
 
